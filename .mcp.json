@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "ccagi-tools": {
+      "args": [],
+      "command": "/Users/seeds-create/.ccagi/bin/ccagi-tools-server",
+      "env": {
+        "HOME": "/Users/seeds-create"
+      }
+    }
+  }
+}

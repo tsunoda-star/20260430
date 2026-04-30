@@ -1,0 +1,263 @@
+version: "1.0.0"
+generated_at: "2026-04-30T00:00:00Z"
+source: "docs/requirements/design-requirements.md"
+project: "security-checklist-tool"
+phase: "2-design"
+epic_issue: 2
+phase_issue: 3
+
+aesthetic:
+  direction: "professional-trustworthy"
+  mood: "focused-minimal"
+  differentiation: "URL一つで、セキュリティ対策の地図が手に入る体験。トップ画面はURL入力欄を中央に大きく配置し、それ以外の要素を徹底排除。"
+  references:
+    - { name: "Hmhm",             url: "https://hmhm.wicle.io/", point: "URL入力中心の一画面起点UX" }
+    - { name: "Linear",           url: "https://linear.app",      point: "情報密度の高いリストUI、キーボードショートカット" }
+    - { name: "Notion",           url: "https://notion.so",       point: "詳細パネルの開閉アニメーション" }
+    - { name: "Vercel Dashboard", url: "https://vercel.com",      point: "データテーブルのシャープな表現" }
+
+colors:
+  primary:                "#0F2540"  # Deep Navy
+  primary_hover:          "#1A3658"  # Navy
+  secondary:              "#F4F4ED"  # Background Subtle (cards/sections)
+  accent:                 "#0095C8"  # CC Sky Blue (AGI domain color)
+  accent_soft:            "#7FCBE4"  # Sky Blue Light
+  accent_secondary:       "#1A3658"  # Navy (深め)
+  accent_tertiary:        "#7FCBE4"  # Sky Blue Light (淡め)
+  status:
+    success: "#079173"  # Emerald
+    warning: "#D97706"  # Amber
+    danger:  "#DC2626"  # Coral Red
+    neutral: "#64748B"  # Slate Gray
+  background:
+    light: "#FAFAF7"  # Off White
+    dark:  "#0F2540"  # Deep Navy (dark mode primary, Phase 4 で拡張)
+  surface:                "#FFFFFF"  # White card/modal
+  background_subtle:      "#F4F4ED"  # Light Gray
+  border:                 "#E2E8F0"  # Cool Gray
+  muted:                  "#94A3B8"  # Light Gray (text muted)
+  subtle:                 "#F4F4ED"  # alias
+  text:
+    primary:   "#0F172A"  # Charcoal
+    secondary: "#475569"  # Mid Gray
+    muted:     "#94A3B8"  # Light Gray
+    on_primary: "#FFFFFF"
+    on_accent:  "#FFFFFF"
+  contrast_verification_wcag_aa:
+    - { fg: "#0F172A", bg: "#FAFAF7", ratio: "16.0:1", level: "AAA" }
+    - { fg: "#475569", bg: "#FFFFFF", ratio: "7.7:1",  level: "AAA" }
+    - { fg: "#FFFFFF", bg: "#0F2540", ratio: "14.8:1", level: "AAA" }
+    - { fg: "#FFFFFF", bg: "#0095C8", ratio: "3.4:1",  level: "AA-large" }
+    - { fg: "#079173", bg: "#FFFFFF", ratio: "4.6:1",  level: "AA" }
+  forbidden_patterns:
+    - "purple gradient on white background (AI slop)"
+    - "pink/purple/blue rainbow gradient"
+    - "neon green/yellow excessive use"
+    - "gray-only monotone UI"
+  allowed_gradients:
+    - { from: "#0F2540", to: "#1A3658", usage: "hero background, slight shift only" }
+    - { from: "#0095C8", to: "#7FCBE4", usage: "progress bar / accent only" }
+
+typography:
+  heading:
+    family: "Manrope"
+    fallback: "'Noto Sans JP', system-ui, -apple-system, sans-serif"
+    weights: [600, 700]
+    sizes:
+      h1: "2.5rem"   # 40px
+      h2: "2rem"     # 32px
+      h3: "1.5rem"   # 24px
+      h4: "1.25rem"  # 20px
+    line_heights:
+      h1: 1.2
+      h2: 1.25
+      h3: 1.3
+      h4: 1.4
+    letter_spacing:
+      h1: "-0.02em"
+  body:
+    family: "Source Sans 3"
+    fallback: "'Noto Sans JP', system-ui, -apple-system, sans-serif"
+    weights: [400, 500]
+    sizes:
+      large:   "1.125rem"  # 18px
+      regular: "1rem"      # 16px
+      small:   "0.875rem"  # 14px
+      xs:      "0.75rem"   # 12px (caption)
+    line_height: 1.6
+  jp:
+    family: "Noto Sans JP"
+    weights: [400, 500, 600, 700]
+    line_height: 1.7
+  monospace:
+    family: "JetBrains Mono"
+    fallback: "ui-monospace, SFMono-Regular, monospace"
+    weights: [400, 500]
+  numeric:
+    family: "Manrope"
+    feature_settings: "'tnum' on, 'lnum' on"
+  principles:
+    - "Apply text-balance to headings (h1-h3)."
+    - "Apply tabular-nums to numeric data (progress %, counts)."
+    - "JP body line-height >= 1.6 (looser than Latin)."
+    - "Max 75ch line length for body."
+  forbidden_fonts:
+    - "Inter"
+    - "Roboto"
+    - "Arial"
+    - "Helvetica"
+
+spacing:
+  unit: "8px"
+  scale:
+    "0":  "0"
+    "px": "1px"
+    "0.5": "2px"
+    "1":  "4px"   # xs
+    "2":  "8px"   # sm
+    "3":  "12px"
+    "4":  "16px"  # md
+    "5":  "20px"
+    "6":  "24px"  # lg
+    "8":  "32px"  # xl
+    "10": "40px"
+    "12": "48px"  # 2xl
+    "16": "64px"  # 3xl
+    "20": "80px"
+    "24": "96px"
+
+borders:
+  radius:
+    none: "0"
+    sm:   "4px"
+    md:   "8px"
+    lg:   "12px"
+    xl:   "16px"
+    "2xl": "24px"
+    full: "9999px"
+  width:
+    thin:   "1px"
+    medium: "2px"
+    thick:  "4px"
+  color_default: "#E2E8F0"
+  focus_ring:
+    color: "#0095C8"
+    width: "2px"
+    offset: "2px"
+    style: "solid"
+
+shadows:
+  none: "none"
+  sm:   "0 1px 2px 0 rgba(15, 23, 42, 0.04)"
+  md:   "0 4px 8px -2px rgba(15, 23, 42, 0.06), 0 2px 4px -2px rgba(15, 23, 42, 0.04)"
+  lg:   "0 12px 24px -8px rgba(15, 23, 42, 0.08), 0 4px 8px -4px rgba(15, 23, 42, 0.04)"
+  xl:   "0 24px 48px -12px rgba(15, 23, 42, 0.12)"
+  inner: "inset 0 1px 2px 0 rgba(15, 23, 42, 0.04)"
+
+motion:
+  duration:
+    instant: "100ms"
+    fast:    "150ms"
+    base:    "200ms"
+    slow:    "300ms"  # 例外 (progress bar 等)
+  easing:
+    default: "cubic-bezier(0.16, 1, 0.3, 1)"  # ease-out
+    in:      "cubic-bezier(0.4, 0, 1, 1)"
+    in_out:  "cubic-bezier(0.4, 0, 0.2, 1)"
+  allowed_properties: ["transform", "opacity"]
+  forbidden_properties: ["width", "height", "top", "left", "margin", "padding"]
+  reduced_motion: "respect prefers-reduced-motion via motion/react useReducedMotion"
+  rules:
+    - "All interactions <= 200ms by default."
+    - "Use compositor-only props (transform, opacity)."
+    - "Never animate layout properties."
+
+components:
+  library: "shadcn/ui"
+  styling: "tailwind"
+  tailwind_version: "4"
+  animation: "motion/react"
+  icons: "lucide-react"
+  forms: "react-hook-form + zod"
+  data_table: "TanStack Table v8"
+  charts: "Recharts"
+  toast: "sonner"
+  classes:
+    hero: "Deep Navy base, CC Sky Blue accent, fade-in"
+    form_input: "Border-only structure, focus ring CC Sky Blue 2px"
+    card: "White surface, subtle border, hover micro-shadow"
+    status_badge: "Solid color small badge + icon, contrast >= AA"
+    modal_drawer: "Right pane (desktop) / full modal (mobile)"
+    button_primary: "CC Sky Blue bg, white text, minimal shadow"
+    button_secondary: "Border + Charcoal text"
+    button_destructive: "Coral Red bg, confirmation dialog required"
+    toast: "Top or bottom-right, 4s auto-dismiss"
+
+responsive:
+  mobile_first: true
+  breakpoints:
+    base: "0px"     # 360px〜639px
+    sm:   "640px"
+    md:   "768px"
+    lg:   "1024px"  # primary use (desktop business)
+    xl:   "1280px"
+    "2xl": "1536px"
+  layouts:
+    top_url:        { mobile: "stacked-center", tablet: "same",        desktop: "same-with-padding" }
+    analysis:       { mobile: "stacked",        tablet: "two-column",  desktop: "two-column" }
+    checklist_list: { mobile: "filter-collapsed-list", tablet: "side-filter+list", desktop: "side-filter+table" }
+    item_detail:    { mobile: "full-modal",     tablet: "full-modal",  desktop: "right-pane-drawer" }
+    settings:       { mobile: "stacked",        tablet: "stacked",     desktop: "two-column" }
+  touch_target_min: "44px"
+  keyboard_shortcuts:
+    - { key: "Cmd/Ctrl+K",  action: "search palette" }
+    - { key: "J/K",         action: "list navigation" }
+    - { key: "Enter",       action: "open detail" }
+    - { key: "Esc",         action: "close modal/drawer" }
+
+quality:
+  lighthouse:
+    performance:    90
+    accessibility:  100
+    best_practices: 100
+    seo:            100
+  core_web_vitals:
+    fcp:  "<1.8s"
+    lcp:  "<2.5s"
+    cls:  "<0.1"
+    inp:  "<200ms"
+    ttfb: "<800ms"
+  wcag_level: "AA"
+  contrast:
+    body_min:    "4.5:1"
+    large_min:   "3.0:1"
+    ui_min:      "3.0:1"
+  bundle_budget:
+    initial_js_gzip: "150KB"
+    initial_css_gzip: "30KB"
+    lcp_image_max: "100KB (WebP/AVIF)"
+  dark_mode: true  # CSS Variables design from Phase 2; full styling in Phase 4+
+
+anti_patterns:
+  fonts:        ["Inter", "Roboto", "Arial", "Helvetica"]
+  colors:       ["purple gradient on white", "rainbow gradient", "neon excess", "monotone gray UI"]
+  effects:      ["excessive drop-shadow (shadow-2xl常用)", "glow effect (drop-shadow過剰)"]
+  animations:   ["transition on width/height/top/left", ">200ms frequent interactions"]
+  layouts:      ["3-column predictable left-sidebar+main+right-sidebar", "100vh (use h-dvh instead)"]
+  icons:        ["emoji UI 😀🚀"]
+
+tokens_export:
+  formats:
+    - { type: "css-vars",       path: "src/styles/tokens.css" }
+    - { type: "tailwind-config", path: "tailwind.config.ts" }
+    - { type: "ts-const",       path: "src/styles/tokens.ts" }
+
+related:
+  source_documents:
+    - "docs/requirements/design-requirements.md"
+    - "docs/requirements/non-functional.md"
+  derived_documents:
+    - "docs/design/ui-guidelines.md"
+    - "docs/design/component-library.md"
+    - "docs/design/responsive-guidelines.md"
+    - "docs/design/component-specs/"

@@ -1,0 +1,329 @@
+# CCAGI Label System - 72ラベル完全版
+# Run: gh label import .github/labels.yml
+
+# =============================================================================
+# 1. STATE Labels (8個) - ライフサイクル管理
+# =============================================================================
+- name: state:pending
+  color: "EDEDED"
+  description: "📥 Pending - トリアージ待ち"
+
+- name: state:analyzing
+  color: "0E8A16"
+  description: "🔍 Analyzing - 分析中"
+
+- name: state:implementing
+  color: "0052CC"
+  description: "🏗️ Implementing - 実装中"
+
+- name: state:reviewing
+  color: "FBCA04"
+  description: "👀 Reviewing - レビュー中"
+
+- name: state:done
+  color: "0E8A16"
+  description: "✅ Done - 完了"
+
+- name: state:blocked
+  color: "B60205"
+  description: "🔴 Blocked - ブロック中"
+
+- name: state:failed
+  color: "B60205"
+  description: "🛑 Failed - 失敗"
+
+- name: state:paused
+  color: "6F42C1"
+  description: "⏸️ Paused - 一時停止"
+
+# =============================================================================
+# 2. AGENT Labels (6個) - Agent割り当て
+# =============================================================================
+- name: agent:coordinator
+  color: "5319E7"
+  description: "🤖 CoordinatorAgent (統) - タスク統括"
+
+- name: agent:codegen
+  color: "5319E7"
+  description: "🤖 CodeGenAgent (源) - コード生成"
+
+- name: agent:review
+  color: "5319E7"
+  description: "🤖 ReviewAgent (謙二) - 品質チェック"
+
+- name: agent:issue
+  color: "5319E7"
+  description: "🤖 IssueAgent (析) - Issue分析"
+
+- name: agent:pr
+  color: "5319E7"
+  description: "🤖 PRAgent (繋) - PR自動作成"
+
+- name: agent:deployment
+  color: "5319E7"
+  description: "🤖 DeploymentAgent (航) - デプロイ"
+
+# =============================================================================
+# 3. PRIORITY Labels (4個) - 優先度管理
+# =============================================================================
+- name: priority:P0-Critical
+  color: "B60205"
+  description: "🔥 Critical - 24時間以内対応"
+
+- name: priority:P1-High
+  color: "D93F0B"
+  description: "⚠️ High - 3日以内対応"
+
+- name: priority:P2-Medium
+  color: "FBCA04"
+  description: "📊 Medium - 1週間以内対応"
+
+- name: priority:P3-Low
+  color: "0E8A16"
+  description: "📝 Low - 通常対応"
+
+# =============================================================================
+# 4. TYPE Labels (7個) - Issue分類
+# =============================================================================
+- name: type:feature
+  color: "0E8A16"
+  description: "✨ Feature - 新機能追加"
+
+- name: type:bug
+  color: "D73A4A"
+  description: "🐛 Bug - バグ修正"
+
+- name: type:docs
+  color: "0075CA"
+  description: "📚 Documentation - ドキュメント"
+
+- name: type:refactor
+  color: "6F42C1"
+  description: "🔧 Refactor - リファクタリング"
+
+- name: type:test
+  color: "FBCA04"
+  description: "🧪 Test - テスト追加"
+
+- name: type:architecture
+  color: "1D76DB"
+  description: "🏗️ Architecture - アーキテクチャ変更"
+
+- name: type:deployment
+  color: "5319E7"
+  description: "🚀 Deployment - デプロイ・インフラ"
+
+# =============================================================================
+# 5. SEVERITY Labels (4個) - 深刻度
+# =============================================================================
+- name: severity:Sev.1-Critical
+  color: "B60205"
+  description: "🚨 Critical - Guardian + CISO + TechLead"
+
+- name: severity:Sev.2-High
+  color: "D93F0B"
+  description: "⚠️ High - TechLead or CISO"
+
+- name: severity:Sev.3-Medium
+  color: "FBCA04"
+  description: "📊 Medium - 自動処理"
+
+- name: severity:Sev.4-Low
+  color: "0E8A16"
+  description: "📝 Low - 自動処理"
+
+# =============================================================================
+# 6. PHASE Labels (8個) - CCAGI SDKフェーズ
+# =============================================================================
+- name: phase:1-requirements
+  color: "BFD4F2"
+  description: "📋 Phase 1 - 要件定義"
+
+- name: phase:2-design
+  color: "D4C5F9"
+  description: "🎨 Phase 2 - 設計"
+
+- name: phase:3-planning
+  color: "C5DEF5"
+  description: "🗓️ Phase 3 - 計画"
+
+- name: phase:4-implementation
+  color: "BFDADC"
+  description: "💻 Phase 4 - 実装"
+
+- name: phase:5-testing
+  color: "FEF2C0"
+  description: "🧪 Phase 5 - テスト"
+
+- name: phase:5.5-quality-gate
+  color: "D4F8D4"
+  description: "✅ Phase 5.5 - 品質ゲート"
+
+- name: phase:6-documentation
+  color: "FFF1C1"
+  description: "📖 Phase 6 - ドキュメント"
+
+- name: phase:7-deployment
+  color: "E99695"
+  description: "🚀 Phase 7 - デプロイ"
+
+# =============================================================================
+# 7. SPECIAL Labels (7個) - 特殊操作
+# =============================================================================
+- name: security
+  color: "B60205"
+  description: "🔐 Security - セキュリティ関連"
+
+- name: cost-watch
+  color: "FBCA04"
+  description: "💰 Cost Watch - 高コスト操作"
+
+- name: dependencies
+  color: "C5DEF5"
+  description: "🔄 Dependencies - 依存関係あり"
+
+- name: learning
+  color: "7057FF"
+  description: "🎓 Learning - 学習タスク"
+
+- name: experiment
+  color: "D4C5F9"
+  description: "🔬 Experiment - 実験的"
+
+- name: wontfix
+  color: "FFFFFF"
+  description: "🚫 Won't Fix - 修正しない"
+
+- name: duplicate
+  color: "CFD3D7"
+  description: "🔁 Duplicate - 重複"
+
+# =============================================================================
+# 8. TRIGGER Labels (4個) - 自動化トリガー
+# =============================================================================
+- name: trigger:agent-execute
+  color: "5319E7"
+  description: "🤖 Agent Execute - Autonomous Agent実行"
+
+- name: trigger:generate-report
+  color: "0075CA"
+  description: "📊 Generate Report - レポート生成"
+
+- name: trigger:deploy-staging
+  color: "D93F0B"
+  description: "🚀 Deploy Staging - stagingデプロイ"
+
+- name: trigger:deploy-production
+  color: "B60205"
+  description: "🚀 Deploy Production - productionデプロイ"
+
+# =============================================================================
+# 9. QUALITY Labels (4個) - 品質スコア
+# =============================================================================
+- name: quality:excellent
+  color: "0E8A16"
+  description: "⭐ Excellent - 90-100点"
+
+- name: quality:good
+  color: "7CBF5F"
+  description: "✅ Good - 80-89点"
+
+- name: quality:needs-improvement
+  color: "FBCA04"
+  description: "⚠️ Needs Improvement - 60-79点"
+
+- name: quality:poor
+  color: "B60205"
+  description: "🔴 Poor - 0-59点"
+
+# =============================================================================
+# 10. COMMUNITY Labels (4個) - コミュニティ
+# =============================================================================
+- name: good-first-issue
+  color: "7057FF"
+  description: "👋 Good First Issue - 初心者向け"
+
+- name: help-wanted
+  color: "0E8A16"
+  description: "🙏 Help Wanted - 助けが必要"
+
+- name: question
+  color: "D876E3"
+  description: "❓ Question - 質問・相談"
+
+- name: discussion
+  color: "0075CA"
+  description: "💬 Discussion - ディスカッション"
+
+# =============================================================================
+# 11. HIERARCHY Labels (5個) - Issue階層
+# =============================================================================
+- name: hierarchy:root
+  color: "1D76DB"
+  description: "🌳 Root - Epic Issue"
+
+- name: hierarchy:parent
+  color: "0075CA"
+  description: "📂 Parent - Phase Issue"
+
+- name: hierarchy:child
+  color: "C5DEF5"
+  description: "📄 Child - Wave/Cycle Issue"
+
+- name: hierarchy:leaf
+  color: "BFDADC"
+  description: "🍃 Leaf - 最小タスク"
+
+# =============================================================================
+# 12. INITIATIVE Labels (2個) - Initiative Issue System
+# =============================================================================
+- name: initiative
+  color: "5319E7"
+  description: "🏛️ Initiative - 複数Epicを束ねる最上位管理単位"
+
+- name: hierarchy:initiative
+  color: "0052CC"
+  description: "🏛️ Initiative - HIERARCHY最上位レベル"
+
+# =============================================================================
+# 13. FEATURE Labels (10個) - 機能トラッキング
+# =============================================================================
+- name: "feature:sentinel-shield"
+  color: "1D76DB"
+  description: "Sentinel Shield - 防御パイプライン"
+
+- name: "feature:lmc"
+  color: "1D76DB"
+  description: "License Management - ライセンス管理"
+
+- name: "feature:mcp-server"
+  color: "1D76DB"
+  description: "MCP Server - ツールサーバー"
+
+- name: "feature:sdk-cli"
+  color: "1D76DB"
+  description: "SDK CLI - コマンドラインツール"
+
+- name: "feature:agent-system"
+  color: "1D76DB"
+  description: "Agent System - エージェント基盤"
+
+- name: "feature:workflow"
+  color: "1D76DB"
+  description: "Workflow - ワークフロー・オーケストレーション"
+
+- name: "feature:rag"
+  color: "1D76DB"
+  description: "RAG - ベクトルメモリ"
+
+- name: "feature:browser-tools"
+  color: "1D76DB"
+  description: "Browser Tools - ブラウザ操作"
+
+- name: "feature:devops"
+  color: "1D76DB"
+  description: "DevOps - CI/CD・インフラ"
+
+- name: "feature:platform"
+  color: "1D76DB"
+  description: "Platform - CC-Auth・課金連携"
