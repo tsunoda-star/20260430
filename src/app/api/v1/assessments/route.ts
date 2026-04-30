@@ -201,19 +201,22 @@ export async function POST(req: NextRequest): Promise<Response> {
           ? ('manual' as const)
           : ('auto' as const),
     }));
+  // @prisma/adapter-neon 5.22 では createMany が内部的にパラメタ束ねの
+  // bulk INSERT を pool.connect() (WebSocket) 経由で送る → Plesk が遮断 → fail。
+  // 個別 create に分解すると単発 INSERT が pool.query() (HTTPS) で動く。
   stage = 'create-links';
-  if (links.length > 0) {
-    await prisma.assessmentGuideline.createMany({ data: links });
+  for (const link of links) {
+    await prisma.assessmentGuideline.create({ data: link });
   }
   stage = 'create-items';
-  if (itemSeeds.length > 0) {
-    await prisma.assessmentItem.createMany({
-      data: itemSeeds.map((s) => ({
+  for (const s of itemSeeds) {
+    await prisma.assessmentItem.create({
+      data: {
         tenantId,
         assessmentId: a.id,
         controlItemId: s.controlItemId,
         status: 'open' as const,
-      })),
+      },
     });
   }
   const created = { id: a.id };
