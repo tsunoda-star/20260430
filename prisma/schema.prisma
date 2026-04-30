@@ -1,0 +1,278 @@
+// Prisma schema — security-checklist-tool
+// Source of truth: docs/design/spec.md §2 データモデル
+// Phase 4 / Wave 1: 全テーブルを定義 (Wave 2 でクローラー/LLM 拡張テーブルを追加)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ----------------------------------------------------------------------------
+// Enums
+// ----------------------------------------------------------------------------
+
+enum UserRole {
+  owner
+  admin
+  editor
+  reviewer
+  viewer
+}
+
+enum AssessmentStatus {
+  draft
+  in_progress
+  completed
+  archived
+}
+
+enum AssessmentItemStatus {
+  open
+  in_progress
+  done
+  not_applicable
+}
+
+enum AssessmentGuidelineSource {
+  auto
+  manual
+}
+
+enum AiChatRating {
+  good
+  bad
+}
+
+// ----------------------------------------------------------------------------
+// Master tables (27 ガイドラインマスタ)
+// ----------------------------------------------------------------------------
+
+model Guideline {
+  id            BigInt   @id @default(autoincrement())
+  code          String   @unique @db.VarChar(64)
+  name          String   @db.VarChar(255)
+  issuer        String   @db.VarChar(128)
+  category      String   @db.VarChar(32)
+  domainTags    String[] @default([]) @map("domain_tags")
+  sourceUrl     String?  @map("source_url")
+  effectiveDate DateTime? @db.Date @map("effective_date")
+  isBaseline    Boolean  @default(false) @map("is_baseline")
+  isActive      Boolean  @default(true) @map("is_active")
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  versions GuidelineVersion[]
+
+  @@map("guidelines")
+}
+
+model GuidelineVersion {
+  id           BigInt   @id @default(autoincrement())
+  guidelineId  BigInt   @map("guideline_id")
+  version      String   @db.VarChar(32)
+  schemaHash   String   @map("schema_hash") @db.VarChar(64)
+  releasedAt   DateTime @db.Date @map("released_at")
+  changelog    String?  @db.Text
+
+  guideline             Guideline               @relation(fields: [guidelineId], references: [id], onDelete: Cascade)
+  controlItems          ControlItem[]
+  assessmentGuidelines  AssessmentGuideline[]
+
+  @@unique([guidelineId, version])
+  @@index([guidelineId])
+  @@map("guideline_versions")
+}
+
+model ControlItem {
+  id                  BigInt    @id @default(autoincrement())
+  guidelineVersionId  BigInt    @map("guideline_version_id")
+  category            String    @db.VarChar(128)
+  subCategory         String?   @map("sub_category") @db.VarChar(128)
+  controlCode         String?   @map("control_code") @db.VarChar(64)
+  title               String    @db.VarChar(255)
+  description         String    @db.Text
+  priority            Int       @db.SmallInt
+  appliesTo           String[]  @default([]) @map("applies_to")
+  normalizedKey       String    @map("normalized_key") @db.VarChar(64)
+  sourceExcerpt       String?   @map("source_excerpt") @db.Text
+  references          Json?
+  createdAt           DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  guidelineVersion GuidelineVersion  @relation(fields: [guidelineVersionId], references: [id], onDelete: Cascade)
+  assessmentItems  AssessmentItem[]
+
+  @@index([normalizedKey], map: "idx_control_items_norm_key")
+  @@index([priority], map: "idx_control_items_priority")
+  @@map("control_items")
+}
+
+// ----------------------------------------------------------------------------
+// Multi-tenant business tables
+// ----------------------------------------------------------------------------
+
+model Tenant {
+  id         BigInt   @id @default(autoincrement())
+  externalId String   @unique @map("external_id") @db.VarChar(64)
+  name       String   @db.VarChar(255)
+  plan       String   @default("starter") @db.VarChar(32)
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  users           User[]
+  companies       Company[]
+  assessments     Assessment[]
+  assessmentItems AssessmentItem[]
+  aiChats         AiChat[]
+  auditLogs       AuditLog[]
+
+  @@map("tenants")
+}
+
+model User {
+  id         BigInt   @id @default(autoincrement())
+  tenantId   BigInt   @map("tenant_id")
+  externalId String   @unique @map("external_id") @db.VarChar(64)
+  email      String   @db.VarChar(320)
+  name       String   @db.VarChar(255)
+  role       UserRole
+  isActive   Boolean  @default(true) @map("is_active")
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  tenant            Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  companiesCreated  Company[]         @relation("CompanyCreator")
+  assessmentsCreated Assessment[]     @relation("AssessmentCreator")
+  assigneeOnItems   AssessmentItem[]  @relation("AssessmentItemAssignee")
+  updatedItems      AssessmentItem[]  @relation("AssessmentItemUpdater")
+  aiChats           AiChat[]
+  auditLogs         AuditLog[]
+
+  @@unique([tenantId, email])
+  @@index([tenantId], map: "idx_users_tenant")
+  @@map("users")
+}
+
+model Company {
+  id                   BigInt   @id @default(autoincrement())
+  tenantId             BigInt   @map("tenant_id")
+  domain               String   @db.VarChar(255)
+  displayName          String?  @map("display_name") @db.VarChar(255)
+  industry             String?  @db.VarChar(64)
+  size                 String?  @db.VarChar(16)
+  inferredData         Json     @default("{}") @map("inferred_data")
+  inferenceConfidence  Int?     @map("inference_confidence") @db.SmallInt
+  userOverrides        Json     @default("{}") @map("user_overrides")
+  createdById          BigInt   @map("created_by")
+  createdAt            DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  tenant      Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdBy   User         @relation("CompanyCreator", fields: [createdById], references: [id])
+  assessments Assessment[]
+
+  @@unique([tenantId, domain])
+  @@index([tenantId], map: "idx_companies_tenant")
+  @@map("companies")
+}
+
+model Assessment {
+  id                        BigInt           @id @default(autoincrement())
+  tenantId                  BigInt           @map("tenant_id")
+  companyId                 BigInt           @map("company_id")
+  title                     String           @db.VarChar(255)
+  status                    AssessmentStatus @default(in_progress)
+  guidelineVersionSnapshot  Json             @map("guideline_version_snapshot")
+  baselineApplied           Boolean          @default(true) @map("baseline_applied")
+  selectionRationale        String?          @map("selection_rationale") @db.Text
+  createdById               BigInt           @map("created_by")
+  createdAt                 DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt                 DateTime         @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  tenant       Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  company      Company               @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  createdBy    User                  @relation("AssessmentCreator", fields: [createdById], references: [id])
+  guidelines   AssessmentGuideline[]
+  items        AssessmentItem[]
+
+  @@index([tenantId], map: "idx_assessments_tenant")
+  @@map("assessments")
+}
+
+model AssessmentGuideline {
+  assessmentId        BigInt                    @map("assessment_id")
+  guidelineVersionId  BigInt                    @map("guideline_version_id")
+  addedBy             AssessmentGuidelineSource @map("added_by")
+
+  assessment        Assessment       @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  guidelineVersion  GuidelineVersion @relation(fields: [guidelineVersionId], references: [id])
+
+  @@id([assessmentId, guidelineVersionId])
+  @@map("assessment_guidelines")
+}
+
+model AssessmentItem {
+  id            BigInt               @id @default(autoincrement())
+  tenantId      BigInt               @map("tenant_id")
+  assessmentId  BigInt               @map("assessment_id")
+  controlItemId BigInt               @map("control_item_id")
+  status        AssessmentItemStatus @default(open)
+  note          String?              @db.Text
+  assigneeId    BigInt?              @map("assignee_id")
+  dueDate       DateTime?            @db.Date @map("due_date")
+  evidenceUrl   String?              @map("evidence_url") @db.Text
+  evidenceText  String?              @map("evidence_text") @db.Text
+  updatedById   BigInt?              @map("updated_by")
+  createdAt     DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime             @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  tenant       Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  assessment   Assessment   @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  controlItem  ControlItem  @relation(fields: [controlItemId], references: [id])
+  assignee     User?        @relation("AssessmentItemAssignee", fields: [assigneeId], references: [id])
+  updatedBy    User?        @relation("AssessmentItemUpdater", fields: [updatedById], references: [id])
+  aiChats      AiChat[]
+
+  @@unique([assessmentId, controlItemId])
+  @@index([assessmentId, status], map: "idx_ai_assessment")
+  @@index([assigneeId], map: "idx_ai_assignee")
+  @@map("assessment_items")
+}
+
+model AiChat {
+  id                BigInt        @id @default(autoincrement())
+  tenantId          BigInt        @map("tenant_id")
+  assessmentItemId  BigInt        @map("assessment_item_id")
+  userId            BigInt        @map("user_id")
+  question          String        @db.Text
+  answer            String        @db.Text
+  promptVersion     String        @map("prompt_version") @db.VarChar(32)
+  rating            AiChatRating?
+  createdAt         DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  tenant         Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  assessmentItem AssessmentItem @relation(fields: [assessmentItemId], references: [id], onDelete: Cascade)
+  user           User           @relation(fields: [userId], references: [id])
+
+  @@index([assessmentItemId], map: "idx_ai_chats_item")
+  @@map("ai_chats")
+}
+
+model AuditLog {
+  id           BigInt   @id @default(autoincrement())
+  tenantId     BigInt   @map("tenant_id")
+  userId       BigInt?  @map("user_id")
+  action       String   @db.VarChar(64)
+  resourceType String   @map("resource_type") @db.VarChar(32)
+  resourceId   BigInt?  @map("resource_id")
+  beforeValue  Json?    @map("before_value")
+  afterValue   Json?    @map("after_value")
+  ipAddress    String?  @map("ip_address") @db.Inet
+  ts           DateTime @default(now()) @db.Timestamptz(6)
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+  user   User?  @relation(fields: [userId], references: [id])
+
+  @@index([tenantId, ts(sort: Desc)], map: "idx_audit_tenant_ts")
+  @@map("audit_logs")
+}

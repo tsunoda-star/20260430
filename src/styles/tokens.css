@@ -1,0 +1,85 @@
+/*
+ * Design tokens — derived from `docs/design/design-system.yml` (single source of truth).
+ *   - Colors are defined as `H S% L%` triplets so Tailwind can apply alpha via `<alpha-value>`.
+ *   - Light theme = default (root). Dark theme = .dark class on <html>.
+ *   - 禁止: 紫グラデーション on 白背景 / レインボー / ネオン過多 / モノトーン
+ *   - 許可グラデ: primary→primary_hover (hero), accent→accent_soft (progress)
+ */
+
+:root {
+  /* ---- Surfaces ---------------------------------------------------- */
+  --background: 60 33% 97%;          /* #FAFAF7 Off White */
+  --foreground: 222 47% 11%;         /* #0F172A Charcoal */
+  --card: 0 0% 100%;                 /* #FFFFFF */
+  --card-foreground: 222 47% 11%;    /* #0F172A */
+  --popover: 0 0% 100%;
+  --popover-foreground: 222 47% 11%;
+
+  /* ---- Brand ------------------------------------------------------- */
+  --primary: 213 62% 16%;            /* #0F2540 Deep Navy */
+  --primary-foreground: 0 0% 100%;
+  --primary-hover: 213 55% 22%;      /* #1A3658 Navy */
+
+  --secondary: 60 18% 94%;           /* #F4F4ED Background Subtle */
+  --secondary-foreground: 222 47% 11%;
+
+  --muted: 215 20% 65%;              /* #94A3B8 Light Gray */
+  --muted-foreground: 215 19% 35%;   /* #475569 Mid Gray */
+
+  --accent: 196 100% 39%;            /* #0095C8 CC Sky Blue (AGI domain) */
+  --accent-foreground: 0 0% 100%;
+  --accent-soft: 196 65% 70%;        /* #7FCBE4 Sky Blue Light */
+
+  /* ---- Status ------------------------------------------------------ */
+  --destructive: 0 73% 51%;          /* #DC2626 Coral Red */
+  --destructive-foreground: 0 0% 100%;
+  --success: 165 92% 30%;            /* #079173 Emerald */
+  --warning: 32 92% 43%;             /* #D97706 Amber */
+
+  /* ---- Lines / focus ---------------------------------------------- */
+  --border: 214 32% 91%;             /* #E2E8F0 Cool Gray */
+  --input: 214 32% 91%;
+  --ring: 196 100% 39%;              /* #0095C8 — focus ring */
+
+  /* ---- Radius (mirrors tailwind.config.ts borderRadius) ------------ */
+  --radius: 8px;
+
+  /* ---- Motion (mirrors design-system.yml motion) ------------------- */
+  --duration-fast: 150ms;
+  --duration-base: 200ms;
+  --duration-slow: 300ms;
+  --easing-out: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.dark {
+  /* Dark mode — Phase 2 で CSS Variables design 設計済み、Phase 4+ で全画面適用 */
+  --background: 213 62% 16%;         /* #0F2540 Deep Navy */
+  --foreground: 60 33% 97%;          /* #FAFAF7 */
+  --card: 213 55% 22%;               /* #1A3658 */
+  --card-foreground: 60 33% 97%;
+  --popover: 213 55% 22%;
+  --popover-foreground: 60 33% 97%;
+
+  --primary: 196 100% 39%;           /* #0095C8 — accent becomes primary CTA in dark */
+  --primary-foreground: 213 62% 16%;
+  --primary-hover: 196 65% 70%;      /* #7FCBE4 */
+
+  --secondary: 213 50% 28%;
+  --secondary-foreground: 60 33% 97%;
+
+  --muted: 215 20% 50%;
+  --muted-foreground: 215 16% 75%;
+
+  --accent: 196 100% 39%;
+  --accent-foreground: 0 0% 100%;
+  --accent-soft: 196 65% 70%;
+
+  --destructive: 0 73% 60%;
+  --destructive-foreground: 0 0% 100%;
+  --success: 165 70% 45%;
+  --warning: 32 92% 55%;
+
+  --border: 213 40% 30%;
+  --input: 213 40% 30%;
+  --ring: 196 100% 39%;
+}

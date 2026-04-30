@@ -1,0 +1,50 @@
+/*
+ * Typography utilities — design-system.yml typography.principles に対応:
+ *   - Apply text-balance to headings (h1-h3).
+ *   - Apply tabular-nums to numeric data.
+ *   - JP body line-height >= 1.6.
+ *   - Max 75ch line length for body.
+ *
+ * 禁止フォント (design-system.yml typography.forbidden_fonts):
+ *   Inter / Roboto / Arial / Helvetica
+ * いずれも本ファイルおよび tailwind.config.ts で参照されないことを確認済み。
+ */
+
+h1,
+h2,
+h3 {
+  text-wrap: balance;
+  font-family: var(--font-heading), var(--font-jp), system-ui, sans-serif;
+}
+
+h4,
+h5,
+h6 {
+  font-family: var(--font-heading), var(--font-jp), system-ui, sans-serif;
+}
+
+/* JP body — design-system.yml typography.jp.line_height >= 1.7 */
+:lang(ja) body,
+body {
+  line-height: 1.7;
+}
+
+/* Numeric data — proportional/tabular nums, lining figures */
+.tabular-nums,
+[data-numeric='true'] {
+  font-feature-settings: 'tnum' on, 'lnum' on;
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+/* Body line-length cap — design-system.yml typography.principles[3] */
+.prose-cap {
+  max-width: 75ch;
+}
+
+/* Tailwind の text-balance / text-pretty を補完 */
+.text-balance {
+  text-wrap: balance;
+}
+.text-pretty {
+  text-wrap: pretty;
+}
