@@ -201,23 +201,34 @@ export async function POST(req: NextRequest): Promise<Response> {
           ? ('manual' as const)
           : ('auto' as const),
     }));
-  // @prisma/adapter-neon 5.22 では createMany が内部的にパラメタ束ねの
-  // bulk INSERT を pool.connect() (WebSocket) 経由で送る → Plesk が遮断 → fail。
-  // 個別 create に分解すると単発 INSERT が pool.query() (HTTPS) で動く。
+  // Plesk の WebSocket 遮断下で確実に動かすため、bulk INSERT を生 SQL で
+  // 1 文に固める。$executeRawUnsafe は pool.query() (HTTPS) で実行される。
+  // (Prisma の createMany / 個別 create は内部で transaction を張るパスに
+  //  入ることがあり、その場合 WebSocket 接続を要求して "Connection
+  //  terminated unexpectedly" になる)
   stage = 'create-links';
-  for (const link of links) {
-    await prisma.assessmentGuideline.create({ data: link });
+  if (links.length > 0) {
+    const linkValues = links
+      .map(
+        (l) =>
+          `(${l.assessmentId.toString()}, ${l.guidelineVersionId.toString()}, '${l.addedBy}')`,
+      )
+      .join(', ');
+    await prisma.$executeRawUnsafe(
+      `INSERT INTO "assessment_guidelines" ("assessment_id", "guideline_version_id", "added_by") VALUES ${linkValues}`,
+    );
   }
   stage = 'create-items';
-  for (const s of itemSeeds) {
-    await prisma.assessmentItem.create({
-      data: {
-        tenantId,
-        assessmentId: a.id,
-        controlItemId: s.controlItemId,
-        status: 'open' as const,
-      },
-    });
+  if (itemSeeds.length > 0) {
+    const itemValues = itemSeeds
+      .map(
+        (s) =>
+          `(${tenantId.toString()}, ${a.id.toString()}, ${s.controlItemId.toString()}, 'open')`,
+      )
+      .join(', ');
+    await prisma.$executeRawUnsafe(
+      `INSERT INTO "assessment_items" ("tenant_id", "assessment_id", "control_item_id", "status") VALUES ${itemValues}`,
+    );
   }
   const created = { id: a.id };
 

@@ -10,7 +10,6 @@ import { useState } from 'react';
 const FORMATS = [
   { id: 'pdf', label: 'PDF', ext: 'pdf' },
   { id: 'xlsx', label: 'Excel', ext: 'xlsx' },
-  { id: 'csv', label: 'CSV', ext: 'csv' },
 ] as const;
 
 interface Props {
@@ -21,7 +20,7 @@ export function ExportButtons({ assessmentId }: Props): JSX.Element {
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const download = async (format: 'pdf' | 'xlsx' | 'csv'): Promise<void> => {
+  const download = async (format: 'pdf' | 'xlsx'): Promise<void> => {
     setBusy(format);
     setError(null);
     try {
