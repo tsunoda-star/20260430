@@ -14,6 +14,11 @@ export type {
   RerankResultEntry,
   RerankOptions,
 } from './rerank';
+export { streamAiChat } from './ai-chat';
+export type { AiChatStreamOptions, AiChatStreamResult } from './ai-chat';
+export { buildAiChatPrompt, AI_CHAT_PROMPT_VERSION } from './ai-chat-prompt';
+export type { AiChatInput, AiChatItemContext } from './ai-chat-prompt';
+export { sanitizeAiChatMarkdown } from './markdown-sanitize';
 export {
   EstimationOutputSchema,
   industryEnum,
