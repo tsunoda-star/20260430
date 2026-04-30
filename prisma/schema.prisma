@@ -6,6 +6,9 @@ generator client {
   provider        = "prisma-client-js"
   // Neon Serverless Driver 経由で HTTPS (443) で Postgres を喋るために必要
   previewFeatures = ["driverAdapters"]
+  // ホスティング (Pro-Web Plesk / AlmaLinux 系 / Debian 系 / Alpine 系) の
+  // どの Linux 環境でも動くよう Prisma engine binary を多重生成する。
+  binaryTargets   = ["native", "rhel-openssl-3.0.x", "debian-openssl-3.0.x", "linux-musl-openssl-3.0.x"]
 }
 
 datasource db {
