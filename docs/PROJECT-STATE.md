@@ -1,7 +1,7 @@
 # PROJECT STATE — security-checklist-tool
 
-**Last Updated**: 2026-04-30
-**Current Phase**: Phase 6 (ドキュメント) 完了 → Phase 7 (デプロイ) 着手準備
+**Last Updated**: 2026-04-30 (revision 2)
+**Current Phase**: Phase 7 (デプロイ) — ローカル完結 Cycle 完了 / AWS 反映待ち
 **Repository**: [tsunoda-star/20260430](https://github.com/tsunoda-star/20260430)
 
 ---
@@ -26,11 +26,11 @@
 | 1 | 要件定義 | (docs完備) | ✅ Done |
 | 2 | 設計 | #3 | ✅ Done |
 | 3 | 計画 + UXレビュー | #4 | ✅ Done |
-| **4** | **実装 (Wave 1-4)** | #5,#6,#7,#8,#9 | ✅ **Done** |
-| **5** | **テスト** | #10 | ✅ **Done** (雛形) |
-| **5.5** | **品質ゲート** | #11 | ✅ **PASS** |
-| **6** | **ドキュメント** | #12 | ✅ **Done** (本コミット) |
-| 7 | デプロイ | (未起票) | ⏸ |
+| 4 | 実装 (Wave 1-4) | #5,#6,#7,#8,#9 | ✅ Done |
+| 5 | テスト | #10 | ✅ Done (雛形) |
+| 5.5 | 品質ゲート | #11 | ✅ PASS |
+| 6 | ドキュメント | #12 | ✅ Done |
+| **7** | **デプロイ** | **#13** | 🟡 **進行中** (ローカル完結分 完了 / AWS 反映 残) |
 | 8 | Platform 連携 | (未起票) | ⏸ Optional (課金 / CC-Auth 拡張) |
 
 ---
@@ -41,8 +41,8 @@
 
 | 項目 | 数 |
 |------|---:|
-| API ルート | **21 本** |
-| client / server lib モジュール | **40+** |
+| API ルート | **22 本** (Phase 7 で `/api/v1/health` 追加) |
+| client / server lib モジュール | **45+** |
 | UI コンポーネント (`src/components/`) | **16** |
 | Prisma model | 10 |
 | 27 ガイドライン マスタ | 27 (seed) |
@@ -52,19 +52,20 @@
 | Category | 数 | 主要パス |
 |---------|---:|---------|
 | session | 2 | GET /me, /me/reviewer-assignments |
-| companies | 4 | POST, POST stream (SSE), GET, GET suggestions |
+| companies | 5 | POST, POST stream (SSE), GET (recent + by id), GET suggestions |
 | assessments / items / chat | 6 | POST assessment, PATCH item, POST ai-chat (SSE), POST rating, POST exports, GET dashboard |
 | admin | 5 | invite / users[id] / guidelines/import / audit-logs / audit-logs/export |
 | master | 1 | GET latest-version |
-| **合計 (REST + SSE)** | **18** | (auth/login + auth/callback ページを含めて 21) |
+| ops | 1 | GET /api/v1/health (Phase 7 / Cycle 7.4) |
+| **合計 (REST + SSE)** | **20** | (auth/login + auth/callback ページを含めて 22) |
 
 ### 3.2 テスト
 
 | 種別 | 数 | 状態 |
 |------|---:|:---:|
-| ユニットテスト | **215 / 215 PASS** | ✅ |
-| coverage (lines) | **91.31%** | ✅ ≥ 80% |
-| coverage (branches) | 84.95% | ✅ ≥ 70% |
+| ユニットテスト | **234 / 234 PASS** | ✅ (Phase 7 で +19) |
+| coverage (lines) | **91.31%+** | ✅ ≥ 80% |
+| coverage (branches) | 84.95%+ | ✅ ≥ 70% |
 | 結合テスト雛形 | 6 tests / 2 files | 🟡 user 環境で実行 |
 | E2E Playwright 雛形 | 39 tests / 5 specs | 🟡 user 環境で実行 |
 | フローテスト雛形 | 5 シナリオ (1 実装 / 4 todo) | 🟡 user 環境で実行 |
@@ -112,7 +113,7 @@ docs/
 
 ---
 
-## 4. Commit 履歴サマリ (24 commits / main)
+## 4. Commit 履歴サマリ (33 commits / main)
 
 | Phase | Cycle | Commit | 内容 |
 |------:|:------|:-------|------|
@@ -144,6 +145,11 @@ docs/
 | 6 | 6.2 | 1fc7c8d | system architecture + 5 sequence diagrams |
 | 6 | 6.3 | 473c93f | user manuals for 5 roles |
 | 6 | 6.4 | 9c8baba | operational runbook |
+| 6 | 6.5 | a059e22 | PROJECT-STATE.md initial snapshot |
+| 7 | 7.3a/b | f914452 | wire UrlInputForm to SSE + recent history list |
+| 7 | 7.4 | c8f1629 | health endpoint + circuit breaker + rate limit + 16 tests |
+| 7 | 7.3c | 70203d0 | PDF Japanese font (Noto Sans CJK JP) + fallback |
+| 7 | 7.4-int | a7f9f30 | wire LLM circuit breaker + rate limit to routes |
 
 ---
 
@@ -158,33 +164,43 @@ docs/
 | SSRF safe-fetch | `src/lib/crawler/safe-fetch.ts` | RFC1918/loopback/link-local/metadata IPv4/v6 deny + DNS pinning + redirect ≤3 hop 再検証 |
 | LLM PII masking | `src/lib/llm/masking.ts` | email / phone / cc / api-key / AWS key |
 | LLM degraded fallback | `src/lib/llm/{estimate,ai-chat}.ts` | rule-based estimator + 固定メッセージ |
+| **LLM Circuit Breaker** (Phase 7) | `src/lib/server/circuit-breaker.ts` + `estimate.ts` | 60s window / 50% errorRate / 10s open → fast-fail fallback |
+| **LLM Rate Limit** (Phase 7) | `src/lib/server/rate-limit.ts` | per-tenant Token Bucket 10/min (LLM) / 100/min (general) |
 | Markdown XSS sanitize | `src/lib/llm/markdown-sanitize.ts` | HTML escape + js:/data: → "#" |
 | Idempotency | `src/lib/server/idempotency.ts` | in-memory 24h TTL + 形式検証 |
 | WCAG コントラスト | `src/lib/a11y/contrast.ts` | Deep Navy on Off-White ≥ 4.5 (assertion) |
 | Viewer 専用フロー | `WhyDisabledBanner` + `ExportCta` + `ViewerRouteGate` + `DisabledActionButton` | UX-VEF 設計 |
+| **PDF 日本語フォント** (Phase 7) | `src/lib/server/exporters/pdf.ts` + `scripts/download-fonts.mjs` | Noto Sans CJK JP SubsetOTF (graceful Helvetica fallback) |
+| **Health endpoint** (Phase 7) | `src/app/api/v1/health/route.ts` | DB ping + LLM env + Cognito env / 503 on down |
 
 ---
 
 ## 6. 残作業 (Outstanding)
 
-### 6.1 Phase 7 / 8 で対応
+### 6.1 Phase 7 ローカル完結分 (✅ 解消済み)
+
+| ID | 内容 | Commit |
+|---|------|--------|
+| O-1 | url-input-form を POST /api/v1/companies/stream に配線 | f914452 |
+| O-2 | history-empty-state.tsx を GET /api/v1/companies?recent に接続 | f914452 |
+| O-3 | PDF 日本語フォント埋め込み (Noto Sans CJK JP / fallback 維持) | 70203d0 |
+| O-4 | `GET /api/v1/health` ALB 用ヘルスチェック実装 | c8f1629 |
+| O-9 | LLM サーキットブレーカー (in-house, opossum 不採用) | c8f1629 + a7f9f30 |
+| O-12 | レート制限 (Token Bucket / per-tenant 10/min LLM, 100/min general) | c8f1629 + a7f9f30 |
+
+### 6.2 Phase 7 AWS 反映 / 8 で対応 (残)
 
 | ID | 内容 | 担当 Phase |
 |---|------|-----------|
-| O-1 | url-input-form を POST /api/v1/companies/stream に配線 (現状 toast のみ) | Phase 7 (UI polish) |
-| O-2 | history-empty-state.tsx を GET /api/v1/companies?recent に接続 | Phase 7 |
-| O-3 | PDF 日本語フォント埋め込み (現状 Helvetica fallback) | Phase 7 |
-| O-4 | `GET /api/v1/health` ALB 用ヘルスチェック実装 | Phase 7 |
 | O-5 | Lighthouse 実機計測 (Performance ≥ 90 / a11y = 100) | Phase 7 デプロイ後 |
 | O-6 | 結合テスト (cycle 5.2) 8 ファイル拡充 | Phase 7 (CI 構築時) |
 | O-7 | E2E Playwright 5 ロール 認証通し実行 | Phase 7 (CI) |
 | O-8 | フローテスト 4 シナリオ (F-02/F-04/F-05/F-06) 実装 | Phase 7 |
-| O-9 | LLM サーキットブレーカー (`opossum`) | Phase 7 |
-| O-10 | Idempotency-Key の Redis / DB 永続化 (multi-instance 対応) | Phase 7 |
+| O-10 | Idempotency-Key の Redis / DB 永続化 (multi-instance 対応) | Phase 7 (mature 化) |
 | O-11 | 課金 (Stripe + CC-Auth) 統合 | Phase 8 |
-| O-12 | レート制限 (Token Bucket) | Phase 8 |
 | O-13 | エクスポート worker 化 (SQS + ECS task + S3) | Phase 8 |
 | O-14 | release-notes 自動生成 | Phase 7 / 8 |
+| O-15 | npm run setup:fonts を CI に組み込む (GitHub Actions) | Phase 7 (CI) |
 
 ### 6.2 Phase 5.5 で許容された Medium / Low
 
@@ -218,7 +234,7 @@ strict policy で prod 反映前に解消推奨。
 npm run dev                      # http://localhost:3000
 
 # 検証
-npm test                         # ユニット (vitest) 215 tests
+npm test                         # ユニット (vitest) 234 tests
 npm run test:coverage            # coverage (≥80% threshold)
 npm run test:integration         # 結合テスト (要 Docker / DATABASE_URL)
 npm run test:flow                # フローテスト
@@ -236,6 +252,12 @@ npm run prisma:seed              # 27 ガイドライン
 
 # OpenAPI 再生成
 npx tsx scripts/generate-openapi.ts
+
+# PDF 用日本語フォント (Phase 7)
+npm run setup:fonts              # public/fonts/NotoSansJP-{Regular,Bold}.otf 取得
+
+# Health check
+curl http://localhost:3000/api/v1/health
 ```
 
 ---
