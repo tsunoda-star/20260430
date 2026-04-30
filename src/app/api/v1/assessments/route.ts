@@ -11,6 +11,7 @@ import {
   isValidIdempotencyKey,
   setIdempotent,
 } from '@/lib/server/idempotency';
+import { isDevAuthBypassEnabled } from '@/lib/auth/dev-bypass';
 
 /**
  * POST /api/v1/assessments
@@ -39,16 +40,33 @@ interface ResponseBody {
   itemCount: number;
 }
 
+function debugError(stage: string, e: unknown): Response {
+  const detail = e instanceof Error ? `${e.name}: ${e.message}` : String(e);
+  const stack = e instanceof Error ? e.stack : undefined;
+  console.error(`[assessments POST] ${stage} failed:`, detail, stack);
+  if (isDevAuthBypassEnabled()) {
+    return new Response(
+      JSON.stringify({ debug: true, stage, detail, stack: stack?.split('\n').slice(0, 12) }),
+      { status: 500, headers: { 'content-type': 'application/json; charset=utf-8' } },
+    );
+  }
+  return new Response('Internal Server Error', { status: 500 });
+}
+
 export async function POST(req: NextRequest): Promise<Response> {
+  let stage = 'auth';
+  try {
   const guard = await requireRoleFromRequest(req, 'editor');
   if (!guard.ok) return guard.response;
 
+  stage = 'parse-body';
   const body = await req.json().catch(() => null);
   const parsed = RequestSchema.safeParse(body);
   if (!parsed.success) {
     return problemResponse('invalid_input', { errors: parsed.error.flatten() });
   }
 
+  stage = 'resolve-tenant';
   const { tenantId, userId } = await resolveTenantContext(guard.user);
   const idempotencyKey = req.headers.get('idempotency-key');
   if (idempotencyKey !== null && !isValidIdempotencyKey(idempotencyKey)) {
@@ -61,6 +79,7 @@ export async function POST(req: NextRequest): Promise<Response> {
     if (cached) return NextResponse.json(cached, { status: 200 });
   }
 
+  stage = 'company-lookup';
   // 1) Company tenant check
   const companyIdBig = BigInt(parsed.data.companyId);
   const company = await prisma.company.findFirst({
@@ -95,6 +114,7 @@ export async function POST(req: NextRequest): Promise<Response> {
     });
   }
 
+  stage = 'guideline-fetch';
   // 各 guideline の最新 version (released_at desc) を 1 件ずつ取得
   const guidelinesWithVersions = await prisma.guideline.findMany({
     where: { id: { in: allIds }, isActive: true },
@@ -150,6 +170,7 @@ export async function POST(req: NextRequest): Promise<Response> {
     }
   }
 
+  stage = 'create-assessment';
   // 4) Assessment + AssessmentGuideline + AssessmentItem を順次作成。
   //    @prisma/adapter-neon (Pool) は $transaction で pool.connect() 経由の
   //    WebSocket 接続を張るが、Plesk が WebSocket を遮断するため使えない。
@@ -180,9 +201,11 @@ export async function POST(req: NextRequest): Promise<Response> {
           ? ('manual' as const)
           : ('auto' as const),
     }));
+  stage = 'create-links';
   if (links.length > 0) {
     await prisma.assessmentGuideline.createMany({ data: links });
   }
+  stage = 'create-items';
   if (itemSeeds.length > 0) {
     await prisma.assessmentItem.createMany({
       data: itemSeeds.map((s) => ({
@@ -195,6 +218,7 @@ export async function POST(req: NextRequest): Promise<Response> {
   }
   const created = { id: a.id };
 
+  stage = 'audit';
   await writeAudit({
     tenantId,
     userId,
@@ -218,4 +242,7 @@ export async function POST(req: NextRequest): Promise<Response> {
     setIdempotent(tenantId, idempotencyKey, response);
   }
   return NextResponse.json(response, { status: 201 });
+  } catch (e) {
+    return debugError(stage, e);
+  }
 }
