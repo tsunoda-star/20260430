@@ -6,6 +6,7 @@ import { resolveTenantContext } from '@/lib/server/tenant';
 import { isDevAuthBypassEnabled, devSessionUser } from '@/lib/auth/dev-bypass';
 import { SESSION_COOKIE_NAME, verifyIdToken, type SessionUser } from '@/lib/auth/session';
 import { cookies } from 'next/headers';
+import { CreateAssessmentButton } from '@/components/create-assessment-button';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -140,20 +141,18 @@ export default async function CompanyDetailPage({
         </section>
       ) : null}
 
-      <section className="rounded-lg border border-dashed p-6 text-center">
+      <section className="rounded-lg border border-dashed p-8 text-center">
         <h2 className="font-heading text-lg font-semibold">次のステップ</h2>
         <p className="mt-2 text-sm text-muted-foreground">
-          チェックシート (Assessment) 作成画面は現在準備中です。
+          推定された業種・規模に合わせたガイドラインを横断的に集めて、
           <br />
-          API は利用可能で、API ドキュメントから直接操作できます。
+          一つのチェックシートにまとめます。
         </p>
-        <div className="mt-4 flex flex-wrap justify-center gap-2 text-sm">
-          <code className="rounded bg-muted px-2 py-1 font-mono">
-            POST /api/v1/assessments
-          </code>
-          <code className="rounded bg-muted px-2 py-1 font-mono">
-            companyId: {company.id.toString()}
-          </code>
+        <div className="mt-5 flex justify-center">
+          <CreateAssessmentButton
+            companyId={company.id.toString()}
+            companyDisplayName={company.displayName ?? company.domain}
+          />
         </div>
       </section>
     </main>

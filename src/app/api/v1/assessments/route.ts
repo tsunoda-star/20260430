@@ -150,48 +150,50 @@ export async function POST(req: NextRequest): Promise<Response> {
     }
   }
 
-  // 4) Assessment + AssessmentGuideline + AssessmentItem を一括作成
-  const created = await prisma.$transaction(async (tx) => {
-    const a = await tx.assessment.create({
-      data: {
-        tenantId,
-        companyId: company.id,
-        title: parsed.data.title,
-        status: 'in_progress',
-        baselineApplied: parsed.data.applyBaseline,
-        guidelineVersionSnapshot: snapshot as unknown as object,
-        selectionRationale: null,
-        createdById: userId,
-      },
-      select: { id: true },
-    });
-
-    const links = guidelinesWithVersions
-      .map((g) => g.versions[0])
-      .filter((v): v is NonNullable<typeof v> => v !== undefined)
-      .map((v) => ({
-        assessmentId: a.id,
-        guidelineVersionId: v.id,
-        addedBy:
-          parsed.data.selectedGuidelineIds.length > 0
-            ? ('manual' as const)
-            : ('auto' as const),
-      }));
-    if (links.length > 0) {
-      await tx.assessmentGuideline.createMany({ data: links });
-    }
-    if (itemSeeds.length > 0) {
-      await tx.assessmentItem.createMany({
-        data: itemSeeds.map((s) => ({
-          tenantId,
-          assessmentId: a.id,
-          controlItemId: s.controlItemId,
-          status: 'open' as const,
-        })),
-      });
-    }
-    return { id: a.id };
+  // 4) Assessment + AssessmentGuideline + AssessmentItem を順次作成。
+  //    @prisma/adapter-neon (Pool) は $transaction で pool.connect() 経由の
+  //    WebSocket 接続を張るが、Plesk が WebSocket を遮断するため使えない。
+  //    各 create/createMany を単発で実行 (HTTPS pool.query)。
+  //    途中失敗時はサーバ側にゴミが残るが、idempotency-key の再投入で補正される。
+  const a = await prisma.assessment.create({
+    data: {
+      tenantId,
+      companyId: company.id,
+      title: parsed.data.title,
+      status: 'in_progress',
+      baselineApplied: parsed.data.applyBaseline,
+      guidelineVersionSnapshot: snapshot as unknown as object,
+      selectionRationale: null,
+      createdById: userId,
+    },
+    select: { id: true },
   });
+
+  const links = guidelinesWithVersions
+    .map((g) => g.versions[0])
+    .filter((v): v is NonNullable<typeof v> => v !== undefined)
+    .map((v) => ({
+      assessmentId: a.id,
+      guidelineVersionId: v.id,
+      addedBy:
+        parsed.data.selectedGuidelineIds.length > 0
+          ? ('manual' as const)
+          : ('auto' as const),
+    }));
+  if (links.length > 0) {
+    await prisma.assessmentGuideline.createMany({ data: links });
+  }
+  if (itemSeeds.length > 0) {
+    await prisma.assessmentItem.createMany({
+      data: itemSeeds.map((s) => ({
+        tenantId,
+        assessmentId: a.id,
+        controlItemId: s.controlItemId,
+        status: 'open' as const,
+      })),
+    });
+  }
+  const created = { id: a.id };
 
   await writeAudit({
     tenantId,
