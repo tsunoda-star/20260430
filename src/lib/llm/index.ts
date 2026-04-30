@@ -4,6 +4,17 @@ export { ruleBasedEstimate } from './rule-based-fallback';
 export { maskSensitive, maskObject } from './masking';
 export { createOpenAiProvider } from './providers/openai';
 export {
+  rerankSuggestions,
+  RERANK_PROMPT_VERSION,
+  MAX_CANDIDATES,
+} from './rerank';
+export type {
+  RerankCandidate,
+  RerankResult,
+  RerankResultEntry,
+  RerankOptions,
+} from './rerank';
+export {
   EstimationOutputSchema,
   industryEnum,
   sizeEnum,

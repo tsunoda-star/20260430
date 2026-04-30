@@ -1,11 +1,13 @@
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
-import type { Industry } from '@/lib/llm';
+import type { EstimationOutput, Industry, RerankCandidate } from '@/lib/llm';
+import { rerankSuggestions } from '@/lib/llm';
 import { problemResponse } from '@/lib/server/problem-details';
 import { requireRoleFromRequest } from '@/lib/server/session';
 import { resolveTenantContext } from '@/lib/server/tenant';
 import { prisma } from '@/lib/server/db';
 import {
+  applyRerank,
   buildSuggestions,
   type GuidelineLite,
   type SuggestionEntry,
@@ -38,6 +40,7 @@ interface ResponseBody {
   baseline: SerializedEntry[];
   industryMatch: SerializedEntry[];
   inferredIndustry: Industry;
+  rerank: { applied: boolean; degraded: boolean; provider: string };
 }
 
 export async function GET(
@@ -89,6 +92,30 @@ export async function GET(
     estimation: { industry: inferredIndustry },
   });
 
+  // LLM rerank — degraded=true でも entries は identity 値で埋まる (順序は変わらない)
+  const inferred = (company.inferredData ?? {}) as Partial<EstimationOutput>;
+  const candidates: RerankCandidate[] = [...groups.baseline, ...groups.industryMatch].map(
+    (e) => ({
+      code: e.guideline.code,
+      name: e.guideline.name,
+      category: e.guideline.category,
+      isBaseline: e.guideline.isBaseline,
+      source: e.source,
+    }),
+  );
+  const rerank = await rerankSuggestions(
+    {
+      industry: inferredIndustry,
+      size: inferred.size ?? 'sme',
+      b2x: inferred.b2x ?? 'b2b',
+      handles_personal_info: inferred.handles_personal_info ?? false,
+      handles_payment: inferred.handles_payment ?? false,
+      rationale: inferred.rationale ?? '',
+    },
+    candidates,
+  );
+  const ranked = applyRerank(groups, rerank.entries);
+
   // BigInt は JSON.stringify で投げるため文字列化する
   const serialize = (entries: SuggestionEntry[]): SerializedEntry[] =>
     entries.map((e) => ({
@@ -97,9 +124,14 @@ export async function GET(
     }));
 
   const body: ResponseBody = {
-    baseline: serialize(groups.baseline),
-    industryMatch: serialize(groups.industryMatch),
+    baseline: serialize(ranked.baseline),
+    industryMatch: serialize(ranked.industryMatch),
     inferredIndustry,
+    rerank: {
+      applied: !rerank.degraded,
+      degraded: rerank.degraded,
+      provider: rerank.provider,
+    },
   };
   return NextResponse.json(body);
 }

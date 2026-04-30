@@ -1,4 +1,4 @@
-import type { EstimationOutput } from '@/lib/llm';
+import type { EstimationOutput, RerankResultEntry } from '@/lib/llm';
 
 /**
  * spec.md §4.1 ガイドライン候補ロジック。
@@ -55,6 +55,43 @@ function compareEntries(a: SuggestionEntry, b: SuggestionEntry): number {
   const pb = b.guideline.priorityScore ?? 0;
   if (pa !== pb) return pb - pa;
   return a.guideline.name.localeCompare(b.guideline.name, 'ja');
+}
+
+/**
+ * LLM-rerank 結果でソート + rationale を上書き。
+ * Cycle 2.5: rerank.degraded=true の場合は元の順序を保つ (entries は identity 値が来る)。
+ */
+export function applyRerank(
+  groups: SuggestionGroups,
+  rerank: ReadonlyArray<RerankResultEntry>,
+): SuggestionGroups {
+  const scoreMap = new Map<string, RerankResultEntry>();
+  for (const r of rerank) scoreMap.set(r.code, r);
+
+  function reorder(entries: SuggestionEntry[]): SuggestionEntry[] {
+    return entries
+      .map((e) => {
+        const s = scoreMap.get(e.guideline.code);
+        return {
+          entry: s
+            ? {
+                ...e,
+                rationale: s.rationale || e.rationale,
+              }
+            : e,
+          score: s?.score ?? e.guideline.priorityScore ?? 0,
+        };
+      })
+      .sort((a, b) => {
+        if (a.score !== b.score) return b.score - a.score;
+        return a.entry.guideline.name.localeCompare(b.entry.guideline.name, 'ja');
+      })
+      .map((s) => s.entry);
+  }
+  return {
+    baseline: reorder(groups.baseline),
+    industryMatch: reorder(groups.industryMatch),
+  };
 }
 
 export function buildSuggestions(input: BuildSuggestionsInput): SuggestionGroups {

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildSuggestions, type GuidelineLite } from '../suggestions';
+import { applyRerank, buildSuggestions, type GuidelineLite } from '../suggestions';
 
 const G = (overrides: Partial<GuidelineLite>): GuidelineLite => ({
   id: 1,
@@ -82,5 +82,48 @@ describe('buildSuggestions', () => {
     });
     expect(r.baseline).toEqual([]);
     expect(r.industryMatch).toEqual([]);
+  });
+});
+
+describe('applyRerank', () => {
+  it('reorders by LLM score desc and overrides rationale', () => {
+    const groups = buildSuggestions({
+      guidelines: [
+        G({ code: 'A', appliesTo: ['finance'], name: 'Alpha' }),
+        G({ code: 'B', appliesTo: ['finance'], name: 'Bravo' }),
+      ],
+      estimation: { industry: 'finance' },
+    });
+    const ranked = applyRerank(groups, [
+      { code: 'A', score: 30, rationale: 'low priority' },
+      { code: 'B', score: 90, rationale: 'must have' },
+    ]);
+    expect(ranked.industryMatch.map((e) => e.guideline.code)).toEqual(['B', 'A']);
+    expect(ranked.industryMatch[0]?.rationale).toBe('must have');
+  });
+
+  it('keeps order on identity rerank (same scores)', () => {
+    const groups = buildSuggestions({
+      guidelines: [
+        G({ code: 'A', appliesTo: ['retail'], name: 'Alpha' }),
+        G({ code: 'B', appliesTo: ['retail'], name: 'Bravo' }),
+      ],
+      estimation: { industry: 'retail' },
+    });
+    const ranked = applyRerank(groups, [
+      { code: 'A', score: 50, rationale: 'r1' },
+      { code: 'B', score: 50, rationale: 'r2' },
+    ]);
+    // 同一 score → name 昇順
+    expect(ranked.industryMatch.map((e) => e.guideline.code)).toEqual(['A', 'B']);
+  });
+
+  it('keeps original rationale if rerank entry is missing', () => {
+    const groups = buildSuggestions({
+      guidelines: [G({ code: 'A', isBaseline: true })],
+      estimation: { industry: 'finance' },
+    });
+    const ranked = applyRerank(groups, []); // no rerank entries
+    expect(ranked.baseline[0]?.rationale).toContain('ベースライン');
   });
 });

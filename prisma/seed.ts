@@ -28,6 +28,15 @@ interface GuidelineSeed {
   isBaseline?: boolean;
 }
 
+/**
+ * domainTags にはトピックタグ + Industry slug (LLM の estimation.industry と同名)
+ * を併記する。これにより `buildSuggestions` の applies_to 突合が機能する。
+ *
+ * Industry slugs (src/lib/llm/types.ts industryEnum と同期):
+ *   medical-saas / manufacturing / finance / retail / public-sector /
+ *   automotive / logistics / education / real-estate / media /
+ *   it-services / professional-services / energy / agriculture
+ */
 const GUIDELINES: GuidelineSeed[] = [
   // 横断 / ベースライン
   {
@@ -56,24 +65,24 @@ const GUIDELINES: GuidelineSeed[] = [
   { code: 'ISO-27001', name: 'ISO/IEC 27001:2022', issuer: 'ISO', category: 'cross', domainTags: ['isms'] },
   { code: 'ISO-27002', name: 'ISO/IEC 27002:2022', issuer: 'ISO', category: 'cross', domainTags: ['isms'] },
   { code: 'CIS-CONTROLS', name: 'CIS Controls v8', issuer: 'CIS', category: 'cross', domainTags: ['controls'] },
-  { code: 'OWASP-ASVS', name: 'OWASP ASVS', issuer: 'OWASP', category: 'cross', domainTags: ['app-sec'] },
+  { code: 'OWASP-ASVS', name: 'OWASP ASVS', issuer: 'OWASP', category: 'cross', domainTags: ['app-sec', 'it-services'] },
 
   // 業界・規制
-  { code: 'PCI-DSS-4', name: 'PCI DSS v4.0', issuer: 'PCI SSC', category: 'finance', domainTags: ['payment'] },
-  { code: 'FISC-V11', name: 'FISC 安全対策基準 第11版', issuer: 'FISC', category: 'finance', domainTags: ['banking'] },
+  { code: 'PCI-DSS-4', name: 'PCI DSS v4.0', issuer: 'PCI SSC', category: 'finance', domainTags: ['payment', 'finance', 'retail'] },
+  { code: 'FISC-V11', name: 'FISC 安全対策基準 第11版', issuer: 'FISC', category: 'finance', domainTags: ['banking', 'finance'] },
   {
     code: 'MHLW-MEDICAL',
     name: '医療情報システムの安全管理に関するガイドライン',
     issuer: '厚生労働省',
     category: 'medical',
-    domainTags: ['medical', 'personal-info'],
+    domainTags: ['medical', 'personal-info', 'medical-saas'],
   },
   {
     code: 'METI-IOT',
     name: 'IoTセキュリティガイドライン',
     issuer: '経済産業省',
     category: 'manufacturing',
-    domainTags: ['iot'],
+    domainTags: ['iot', 'manufacturing', 'automotive'],
   },
   {
     code: 'METI-AUTO',
@@ -87,14 +96,14 @@ const GUIDELINES: GuidelineSeed[] = [
     name: '港湾サイバーセキュリティガイドライン',
     issuer: '国土交通省',
     category: 'port',
-    domainTags: ['critical-infra', 'port'],
+    domainTags: ['critical-infra', 'port', 'logistics'],
   },
   {
     code: 'MIC-CLOUD-PROC',
     name: '政府機関等のクラウドサービス調達に関するガイドライン',
     issuer: '総務省',
     category: 'cloud-procurement',
-    domainTags: ['government', 'procurement'],
+    domainTags: ['government', 'procurement', 'public-sector', 'it-services'],
   },
 
   // 政府 / 公共
@@ -103,25 +112,25 @@ const GUIDELINES: GuidelineSeed[] = [
     name: '政府機関等のサイバーセキュリティ対策のための統一基準',
     issuer: 'NISC',
     category: 'government',
-    domainTags: ['government'],
+    domainTags: ['government', 'public-sector'],
   },
-  { code: 'ISMAP', name: 'ISMAP 管理基準', issuer: 'ISMAP', category: 'cloud-procurement', domainTags: ['cloud', 'gov'] },
+  { code: 'ISMAP', name: 'ISMAP 管理基準', issuer: 'ISMAP', category: 'cloud-procurement', domainTags: ['cloud', 'gov', 'public-sector', 'it-services'] },
 
   // 業界別 (cross / industry)
-  { code: 'TELECOM-MIC', name: '電気通信事業者の情報セキュリティ対策', issuer: '総務省', category: 'industry', domainTags: ['telecom'] },
+  { code: 'TELECOM-MIC', name: '電気通信事業者の情報セキュリティ対策', issuer: '総務省', category: 'industry', domainTags: ['telecom', 'media', 'it-services'] },
   { code: 'BCP-CABINET', name: '事業継続ガイドライン', issuer: '内閣府', category: 'cross', domainTags: ['bcp'] },
   { code: 'PRIVACY-PPC', name: '個人情報の保護に関する法律ガイドライン', issuer: '個人情報保護委員会', category: 'cross', domainTags: ['privacy'] },
   { code: 'JISQ-15001', name: 'JIS Q 15001:2023 (PMS)', issuer: 'JIS', category: 'cross', domainTags: ['privacy'] },
 
   // SaaS / Web 系
-  { code: 'OWASP-TOP10', name: 'OWASP Top 10 (Web)', issuer: 'OWASP', category: 'cross', domainTags: ['web'] },
-  { code: 'OWASP-API-TOP10', name: 'OWASP API Security Top 10', issuer: 'OWASP', category: 'cross', domainTags: ['api'] },
-  { code: 'CSA-CCM', name: 'CSA Cloud Controls Matrix', issuer: 'CSA', category: 'cross', domainTags: ['cloud'] },
+  { code: 'OWASP-TOP10', name: 'OWASP Top 10 (Web)', issuer: 'OWASP', category: 'cross', domainTags: ['web', 'it-services', 'retail', 'media'] },
+  { code: 'OWASP-API-TOP10', name: 'OWASP API Security Top 10', issuer: 'OWASP', category: 'cross', domainTags: ['api', 'it-services'] },
+  { code: 'CSA-CCM', name: 'CSA Cloud Controls Matrix', issuer: 'CSA', category: 'cross', domainTags: ['cloud', 'it-services'] },
 
   // 製造 / 重要インフラ
-  { code: 'IEC-62443', name: 'IEC 62443 (OT セキュリティ)', issuer: 'IEC', category: 'manufacturing', domainTags: ['ot', 'industrial'] },
-  { code: 'NIST-800-171', name: 'NIST SP 800-171', issuer: 'NIST', category: 'cross', domainTags: ['cui', 'supply-chain'] },
-  { code: 'METI-SUPPLY', name: 'サプライチェーンサイバーセキュリティ', issuer: '経済産業省', category: 'cross', domainTags: ['supply-chain'] },
+  { code: 'IEC-62443', name: 'IEC 62443 (OT セキュリティ)', issuer: 'IEC', category: 'manufacturing', domainTags: ['ot', 'industrial', 'manufacturing', 'energy'] },
+  { code: 'NIST-800-171', name: 'NIST SP 800-171', issuer: 'NIST', category: 'cross', domainTags: ['cui', 'supply-chain', 'manufacturing', 'public-sector'] },
+  { code: 'METI-SUPPLY', name: 'サプライチェーンサイバーセキュリティ', issuer: '経済産業省', category: 'cross', domainTags: ['supply-chain', 'manufacturing', 'automotive'] },
   {
     code: 'JPCERT-INCIDENT',
     name: 'インシデント対応ガイド',
