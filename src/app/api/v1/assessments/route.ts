@@ -115,39 +115,49 @@ export async function POST(req: NextRequest): Promise<Response> {
   }
 
   stage = 'guideline-fetch';
-  // 各 guideline の最新 version (released_at desc) を 1 件ずつ取得
-  const guidelinesWithVersions = await prisma.guideline.findMany({
+  // Neon HTTPS adapter で nested include が空配列を返すケースを避けるため、
+  // flat な findMany 3 段に分解する (guideline → versions → controlItems)。
+  const guidelines = await prisma.guideline.findMany({
     where: { id: { in: allIds }, isActive: true },
-    select: {
-      id: true,
-      code: true,
-      name: true,
-      versions: {
-        orderBy: { releasedAt: 'desc' },
-        take: 1,
-        select: {
-          id: true,
-          version: true,
-          releasedAt: true,
-          controlItems: {
-            select: {
-              id: true,
-              normalizedKey: true,
-              priority: true,
-            },
-          },
-        },
-      },
-    },
+    select: { id: true, code: true, name: true },
   });
-
-  if (guidelinesWithVersions.length === 0) {
+  if (guidelines.length === 0) {
     return problemResponse('not_found', { detail: 'no matching guidelines' });
   }
 
+  stage = 'version-fetch';
+  // 各 guideline の最新 version を 1 件ずつ取得 (HTTPS で N 回)
+  const versionByGuidelineId = new Map<
+    string,
+    { id: bigint; version: string; releasedAt: Date | null }
+  >();
+  for (const g of guidelines) {
+    const v = await prisma.guidelineVersion.findFirst({
+      where: { guidelineId: g.id },
+      orderBy: { releasedAt: 'desc' },
+      select: { id: true, version: true, releasedAt: true },
+    });
+    if (v) versionByGuidelineId.set(g.id.toString(), v);
+  }
+
+  stage = 'control-fetch';
+  const versionIds = Array.from(versionByGuidelineId.values()).map((v) => v.id);
+  const controlItems =
+    versionIds.length === 0
+      ? []
+      : await prisma.controlItem.findMany({
+          where: { guidelineVersionId: { in: versionIds } },
+          select: {
+            id: true,
+            guidelineVersionId: true,
+            normalizedKey: true,
+            priority: true,
+          },
+        });
+
   // 3) snapshot + normalized_key dedup
-  const snapshot = guidelinesWithVersions.map((g) => {
-    const v = g.versions[0];
+  const snapshot = guidelines.map((g) => {
+    const v = versionByGuidelineId.get(g.id.toString());
     return {
       guidelineId: g.id.toString(),
       code: g.code,
@@ -160,14 +170,10 @@ export async function POST(req: NextRequest): Promise<Response> {
 
   const seenKeys = new Set<string>();
   const itemSeeds: { controlItemId: bigint; priority: number }[] = [];
-  for (const g of guidelinesWithVersions) {
-    const v = g.versions[0];
-    if (!v) continue;
-    for (const ci of v.controlItems) {
-      if (seenKeys.has(ci.normalizedKey)) continue;
-      seenKeys.add(ci.normalizedKey);
-      itemSeeds.push({ controlItemId: ci.id, priority: ci.priority });
-    }
+  for (const ci of controlItems) {
+    if (seenKeys.has(ci.normalizedKey)) continue;
+    seenKeys.add(ci.normalizedKey);
+    itemSeeds.push({ controlItemId: ci.id, priority: ci.priority });
   }
 
   stage = 'create-assessment';
@@ -190,17 +196,14 @@ export async function POST(req: NextRequest): Promise<Response> {
     select: { id: true },
   });
 
-  const links = guidelinesWithVersions
-    .map((g) => g.versions[0])
-    .filter((v): v is NonNullable<typeof v> => v !== undefined)
-    .map((v) => ({
-      assessmentId: a.id,
-      guidelineVersionId: v.id,
-      addedBy:
-        parsed.data.selectedGuidelineIds.length > 0
-          ? ('manual' as const)
-          : ('auto' as const),
-    }));
+  const links = Array.from(versionByGuidelineId.values()).map((v) => ({
+    assessmentId: a.id,
+    guidelineVersionId: v.id,
+    addedBy:
+      parsed.data.selectedGuidelineIds.length > 0
+        ? ('manual' as const)
+        : ('auto' as const),
+  }));
   // Plesk の WebSocket 遮断下で確実に動かすため、bulk INSERT を生 SQL で
   // 1 文に固める。$executeRawUnsafe は pool.query() (HTTPS) で実行される。
   // (Prisma の createMany / 個別 create は内部で transaction を張るパスに
@@ -243,7 +246,7 @@ export async function POST(req: NextRequest): Promise<Response> {
       title: parsed.data.title,
       itemCount: itemSeeds.length,
       applyBaseline: parsed.data.applyBaseline,
-      guidelineCount: guidelinesWithVersions.length,
+      guidelineCount: guidelines.length,
     },
   });
 

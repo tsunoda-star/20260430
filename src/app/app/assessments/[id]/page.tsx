@@ -45,6 +45,7 @@ export default async function AssessmentDetailPage({
 
   const { tenantId } = await resolveTenantContext(session);
 
+  // Neon HTTPS adapter で nested include の取りこぼしを避けるため flat 検索する。
   const a = await prisma.assessment.findFirst({
     where: { id, tenantId },
     select: {
@@ -53,70 +54,112 @@ export default async function AssessmentDetailPage({
       status: true,
       baselineApplied: true,
       createdAt: true,
-      company: {
-        select: { id: true, domain: true, displayName: true, industry: true },
-      },
-      items: {
-        orderBy: [{ controlItem: { priority: 'desc' } }, { id: 'asc' }],
-        select: {
-          id: true,
-          status: true,
-          note: true,
-          dueDate: true,
-          controlItem: {
-            select: {
-              id: true,
-              title: true,
-              category: true,
-              priority: true,
-              description: true,
-              guidelineVersion: {
-                select: {
-                  version: true,
-                  guideline: { select: { code: true, name: true } },
-                },
-              },
-            },
-          },
-        },
-      },
+      companyId: true,
     },
   });
   if (!a) notFound();
 
-  const totalCount = a.items.length;
-  const doneCount = a.items.filter((it) => it.status === 'done').length;
-  const inProgressCount = a.items.filter((it) => it.status === 'in_progress').length;
-  const naCount = a.items.filter((it) => it.status === 'not_applicable').length;
+  const aCompany = await prisma.company.findFirst({
+    where: { id: a.companyId, tenantId },
+    select: { id: true, domain: true, displayName: true, industry: true },
+  });
+
+  const rawItems = await prisma.assessmentItem.findMany({
+    where: { tenantId, assessmentId: a.id },
+    select: {
+      id: true,
+      status: true,
+      note: true,
+      dueDate: true,
+      controlItemId: true,
+    },
+  });
+
+  const controlIds = rawItems.map((it) => it.controlItemId);
+  const controlRows =
+    controlIds.length === 0
+      ? []
+      : await prisma.controlItem.findMany({
+          where: { id: { in: controlIds } },
+          select: {
+            id: true,
+            title: true,
+            category: true,
+            priority: true,
+            description: true,
+            guidelineVersionId: true,
+          },
+        });
+  const controlById = new Map(controlRows.map((c) => [c.id.toString(), c]));
+
+  const versionIds = Array.from(new Set(controlRows.map((c) => c.guidelineVersionId)));
+  const versionRows =
+    versionIds.length === 0
+      ? []
+      : await prisma.guidelineVersion.findMany({
+          where: { id: { in: versionIds } },
+          select: { id: true, version: true, guidelineId: true },
+        });
+  const versionById = new Map(versionRows.map((v) => [v.id.toString(), v]));
+
+  const guidelineIds = Array.from(new Set(versionRows.map((v) => v.guidelineId)));
+  const guidelineRows =
+    guidelineIds.length === 0
+      ? []
+      : await prisma.guideline.findMany({
+          where: { id: { in: guidelineIds } },
+          select: { id: true, code: true, name: true },
+        });
+  const guidelineById = new Map(guidelineRows.map((g) => [g.id.toString(), g]));
+
+  // priority desc, id asc でソート
+  rawItems.sort((x, y) => {
+    const cx = controlById.get(x.controlItemId.toString());
+    const cy = controlById.get(y.controlItemId.toString());
+    const px = cx?.priority ?? 0;
+    const py = cy?.priority ?? 0;
+    if (px !== py) return py - px;
+    return x.id < y.id ? -1 : 1;
+  });
+
+  const totalCount = rawItems.length;
+  const doneCount = rawItems.filter((it) => it.status === 'done').length;
+  const inProgressCount = rawItems.filter((it) => it.status === 'in_progress').length;
+  const naCount = rawItems.filter((it) => it.status === 'not_applicable').length;
   const openCount = totalCount - doneCount - inProgressCount - naCount;
   const progressPct =
     totalCount === 0 ? 0 : Math.round(((doneCount + naCount) / totalCount) * 100);
 
-  const items = a.items.map((it) => ({
-    id: it.id.toString(),
-    status: it.status,
-    note: it.note ?? '',
-    dueDate: it.dueDate?.toISOString().slice(0, 10) ?? null,
-    controlItem: {
-      id: it.controlItem.id.toString(),
-      title: it.controlItem.title,
-      category: it.controlItem.category,
-      priority: it.controlItem.priority,
-      description: it.controlItem.description,
-      guidelineCode: it.controlItem.guidelineVersion.guideline.code,
-      guidelineName: it.controlItem.guidelineVersion.guideline.name,
-    },
-  }));
+  const items = rawItems.map((it) => {
+    const ci = controlById.get(it.controlItemId.toString());
+    const ver = ci ? versionById.get(ci.guidelineVersionId.toString()) : undefined;
+    const g = ver ? guidelineById.get(ver.guidelineId.toString()) : undefined;
+    return {
+      id: it.id.toString(),
+      status: it.status,
+      note: it.note ?? '',
+      dueDate: it.dueDate?.toISOString().slice(0, 10) ?? null,
+      controlItem: {
+        id: ci?.id.toString() ?? it.controlItemId.toString(),
+        title: ci?.title ?? '(削除済み)',
+        category: ci?.category ?? '—',
+        priority: ci?.priority ?? 0,
+        description: ci?.description ?? null,
+        guidelineCode: g?.code ?? '—',
+        guidelineName: g?.name ?? '—',
+      },
+    };
+  });
 
   return (
     <main className="mx-auto max-w-4xl px-5 py-10 md:py-14">
       <nav className="mb-8 text-sm">
-        {a.company ? (
+        {aCompany ? (
           <Link
-            href={`/app/companies/${a.company.id}`}
+            href={`/app/companies/${aCompany.id}`}
             className="text-muted-foreground transition-colors hover:text-foreground"
           >
-            ← {a.company.displayName ?? a.company.domain}
+            ← {aCompany.displayName ?? aCompany.domain}
           </Link>
         ) : (
           <Link
@@ -129,10 +172,10 @@ export default async function AssessmentDetailPage({
       </nav>
 
       <header className="mb-10 flex items-start gap-5">
-        {a.company ? <CompanyFavicon domain={a.company.domain} size={56} /> : null}
+        {aCompany ? <CompanyFavicon domain={aCompany.domain} size={56} /> : null}
         <div className="min-w-0 flex-1">
           <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
-            {a.company?.domain ?? '—'} ・{' '}
+            {aCompany?.domain ?? '—'} ・{' '}
             {a.baselineApplied ? 'baseline 適用' : 'baseline なし'}
           </p>
           <h1 className="mt-2 font-heading text-3xl font-bold leading-tight tracking-tight md:text-4xl">
