@@ -10,6 +10,7 @@ import { writeAudit } from '@/lib/server/audit';
 import { prisma } from '@/lib/server/db';
 import { encodeSseEvent, resumeOffset, SSE_HEADERS } from '@/lib/server/sse';
 import { llmRateLimiter } from '@/lib/server/rate-limit';
+import { isDevAuthBypassEnabled } from '@/lib/auth/dev-bypass';
 
 /**
  * POST /api/v1/companies/stream
@@ -60,32 +61,51 @@ function makePush(controller: ReadableStreamDefaultController<Uint8Array>, skip:
   };
 }
 
+function debugError(stage: string, e: unknown): Response {
+  const detail = e instanceof Error ? `${e.name}: ${e.message}` : String(e);
+  const stack = e instanceof Error ? e.stack : undefined;
+  console.error(`[companies/stream] ${stage} failed:`, detail, stack);
+  if (isDevAuthBypassEnabled()) {
+    return new Response(
+      JSON.stringify({ debug: true, stage, detail, stack: stack?.split('\n').slice(0, 10) }),
+      { status: 500, headers: { 'content-type': 'application/json; charset=utf-8' } },
+    );
+  }
+  return new Response('Internal Server Error', { status: 500 });
+}
+
 export async function POST(req: NextRequest): Promise<Response> {
-  const guard = await requireActionFromRequest(req, 'company.create');
-  if (!guard.ok) return guard.response;
+  let stage = 'auth';
+  try {
+    const guard = await requireActionFromRequest(req, 'company.create');
+    if (!guard.ok) return guard.response;
 
-  const json = await req.json().catch(() => null);
-  const parsed = RequestSchema.safeParse(json);
-  if (!parsed.success) {
-    return problemResponse('invalid_input', { errors: parsed.error.flatten() });
-  }
+    stage = 'parse-body';
+    const json = await req.json().catch(() => null);
+    const parsed = RequestSchema.safeParse(json);
+    if (!parsed.success) {
+      return problemResponse('invalid_input', { errors: parsed.error.flatten() });
+    }
 
-  const lastEventId = req.headers.get('last-event-id');
-  const skip = resumeOffset(lastEventId, STAGE_IDS as unknown as string[]);
+    const lastEventId = req.headers.get('last-event-id');
+    const skip = resumeOffset(lastEventId, STAGE_IDS as unknown as string[]);
 
-  const { tenantId, userId } = await resolveTenantContext(guard.user);
+    stage = 'resolve-tenant';
+    const { tenantId, userId } = await resolveTenantContext(guard.user);
 
-  const rl = llmRateLimiter.consume(`company:${tenantId.toString()}`);
-  if (!rl.allowed) {
-    return problemResponse('rate_limited', {
-      detail: `LLM 呼び出しが多すぎます (${Math.ceil(rl.retryAfterMs / 1000)}秒後に再試行)`,
-      extras: { retryAfterMs: rl.retryAfterMs },
-    });
-  }
+    stage = 'rate-limit';
+    const rl = llmRateLimiter.consume(`company:${tenantId.toString()}`);
+    if (!rl.allowed) {
+      return problemResponse('rate_limited', {
+        detail: `LLM 呼び出しが多すぎます (${Math.ceil(rl.retryAfterMs / 1000)}秒後に再試行)`,
+        extras: { retryAfterMs: rl.retryAfterMs },
+      });
+    }
 
-  const url = parsed.data.url;
+    const url = parsed.data.url;
 
-  const stream = new ReadableStream<Uint8Array>({
+    stage = 'build-stream';
+    const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
       const push = makePush(controller, skip);
       try {
@@ -219,7 +239,10 @@ export async function POST(req: NextRequest): Promise<Response> {
       // crawl / estimate は内部で AbortSignal.timeout を使っており、最大 10s/30s で
       // 自然終了するため OK.
     },
-  });
+    });
 
-  return new Response(stream, { status: 200, headers: SSE_HEADERS });
+    return new Response(stream, { status: 200, headers: SSE_HEADERS });
+  } catch (e) {
+    return debugError(stage, e);
+  }
 }

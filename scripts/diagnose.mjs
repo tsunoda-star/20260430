@@ -79,6 +79,44 @@ try {
   const start = Date.now();
   const r = await prisma.$queryRaw`SELECT 1 as ok`;
   log(`✓ Neon HTTPS query OK (${Date.now() - start}ms)`, r);
+
+  log('\n=== Schema presence (Tenant / User / Company) ===');
+  for (const table of ['Tenant', 'User', 'Company', 'GuidelineVersion']) {
+    try {
+      const cnt = await prisma.$queryRawUnsafe(
+        `SELECT COUNT(*)::int AS n FROM "${table}"`,
+      );
+      log(`✓ ${table} exists (rows=${cnt?.[0]?.n ?? '?'})`);
+    } catch (e) {
+      log(`✗ ${table}: ${e?.message?.split('\n')[0] ?? e}`);
+    }
+  }
+
+  log('\n=== Tenant upsert smoke test (mimics resolveTenantContext) ===');
+  try {
+    const t = await prisma.tenant.upsert({
+      where: { externalId: 'dev-tenant' },
+      update: {},
+      create: { externalId: 'dev-tenant', name: 'dev-tenant' },
+      select: { id: true, externalId: true },
+    });
+    log(`✓ tenant.upsert OK id=${t.id} externalId=${t.externalId}`);
+    const u = await prisma.user.upsert({
+      where: { externalId: 'dev-user-001' },
+      update: {},
+      create: {
+        tenantId: t.id,
+        externalId: 'dev-user-001',
+        email: 'dev@local.example',
+        name: 'Dev User',
+        role: 'admin',
+      },
+      select: { id: true },
+    });
+    log(`✓ user.upsert OK id=${u.id}`);
+  } catch (e) {
+    err('Tenant/User upsert', e);
+  }
   await prisma.$disconnect();
 } catch (e) {
   err('Neon HTTPS connect', e);
