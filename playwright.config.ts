@@ -80,7 +80,7 @@ export default defineConfig({
       testIgnore: /.*\.test\.ts/,
       use: {
         ...devices['Desktop Chrome'],
-        storageState: 'playwright/.auth/user.json',
+        // storageState は fixtures/index.ts で各ロールごとに付与する
         serviceWorkers: 'block',
         viewport: { width: 1280, height: 720 },
       },
@@ -91,10 +91,7 @@ export default defineConfig({
       name: 'firefox',
       testMatch: /.*\.pw\.ts/,
       testIgnore: /.*\.test\.ts/,
-      use: {
-        ...devices['Desktop Firefox'],
-        storageState: 'playwright/.auth/user.json',
-      },
+      use: { ...devices['Desktop Firefox'] },
       dependencies: ['setup'],
     },
 
@@ -102,10 +99,7 @@ export default defineConfig({
       name: 'webkit',
       testMatch: /.*\.pw\.ts/,
       testIgnore: /.*\.test\.ts/,
-      use: {
-        ...devices['Desktop Safari'],
-        storageState: 'playwright/.auth/user.json',
-      },
+      use: { ...devices['Desktop Safari'] },
       dependencies: ['setup'],
     },
 
@@ -114,10 +108,7 @@ export default defineConfig({
       name: 'Mobile Chrome',
       testMatch: /.*\.pw\.ts/,
       testIgnore: /.*\.test\.ts/,
-      use: {
-        ...devices['Pixel 5'],
-        storageState: 'playwright/.auth/user.json',
-      },
+      use: { ...devices['Pixel 5'] },
       dependencies: ['setup'],
     },
 
@@ -125,10 +116,7 @@ export default defineConfig({
       name: 'Mobile Safari',
       testMatch: /.*\.pw\.ts/,
       testIgnore: /.*\.test\.ts/,
-      use: {
-        ...devices['iPhone 12'],
-        storageState: 'playwright/.auth/user.json',
-      },
+      use: { ...devices['iPhone 12'] },
       dependencies: ['setup'],
     },
   ],

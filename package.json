@@ -49,6 +49,7 @@
   "devDependencies": {
     "@axe-core/react": "^4.10.0",
     "@lhci/cli": "^0.14.0",
+    "@playwright/test": "^1.59.1",
     "@types/node": "^20.17.6",
     "@types/pdfkit": "^0.17.6",
     "@types/react": "^18.3.12",
