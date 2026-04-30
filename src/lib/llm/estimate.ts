@@ -1,3 +1,7 @@
+import {
+  CircuitBreaker,
+  CircuitOpenError,
+} from '@/lib/server/circuit-breaker';
 import { buildEstimationPrompt, PROMPT_VERSION } from './estimation-prompt';
 import { ruleBasedEstimate } from './rule-based-fallback';
 import { createOpenAiProvider } from './providers/openai';
@@ -8,6 +12,16 @@ import {
   type EstimationResult,
   type LlmEstimationProvider,
 } from './types';
+
+/**
+ * spec.md §9.5: LLM 経路の Circuit Breaker. estimate と streamAiChat で共有.
+ */
+export const llmEstimateCircuit = new CircuitBreaker({
+  timeWindowMs: 60_000,
+  errorRateThreshold: 0.5,
+  openDurationMs: 10_000,
+  minCalls: 5,
+});
 
 /**
  * estimation オーケストレータ。
@@ -30,6 +44,8 @@ export interface EstimateOptions {
   /** 主プロバイダを差し替え (テスト用 / Bedrock 等を将来差し込む) */
   provider?: LlmEstimationProvider;
   signal?: AbortSignal;
+  /** テスト用 circuit breaker 差し替え */
+  circuit?: CircuitBreaker;
 }
 
 function selectProvider(): LlmEstimationProvider | null {
@@ -80,8 +96,11 @@ export async function estimate(
 
   const built = buildEstimationPrompt(input);
   const promptText = `${built.system}\n\n${built.user}`;
+  const breaker = opts.circuit ?? llmEstimateCircuit;
   try {
-    const { rawResponse } = await primary.estimate(promptText, { signal: opts.signal });
+    const { rawResponse } = await breaker.exec(() =>
+      primary.estimate(promptText, { signal: opts.signal }),
+    );
     const parsed = tryParseJson(rawResponse);
     const validated = EstimationOutputSchema.safeParse(parsed);
     if (!validated.success) {
@@ -89,7 +108,15 @@ export async function estimate(
       return asResult(ruleBasedEstimate(input), `${primary.name}+rule-based`, true);
     }
     return asResult(validated.data, primary.name, false);
-  } catch {
+  } catch (err) {
+    // CircuitOpenError → 外部呼び出しせず即 fallback (provider tag に明示)
+    if (err instanceof CircuitOpenError) {
+      return asResult(
+        ruleBasedEstimate(input),
+        `${primary.name}+circuit-open+rule-based`,
+        true,
+      );
+    }
     // タイムアウト / HTTP エラー / ネットワーク失敗 → fallback
     return asResult(ruleBasedEstimate(input), `${primary.name}+rule-based`, true);
   }

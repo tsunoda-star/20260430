@@ -9,6 +9,7 @@ import { resolveTenantContext } from '@/lib/server/tenant';
 import { writeAudit } from '@/lib/server/audit';
 import { prisma } from '@/lib/server/db';
 import { encodeSseEvent, resumeOffset, SSE_HEADERS } from '@/lib/server/sse';
+import { llmRateLimiter } from '@/lib/server/rate-limit';
 
 /**
  * POST /api/v1/companies/stream
@@ -73,6 +74,15 @@ export async function POST(req: NextRequest): Promise<Response> {
   const skip = resumeOffset(lastEventId, STAGE_IDS as unknown as string[]);
 
   const { tenantId, userId } = await resolveTenantContext(guard.user);
+
+  const rl = llmRateLimiter.consume(`company:${tenantId.toString()}`);
+  if (!rl.allowed) {
+    return problemResponse('rate_limited', {
+      detail: `LLM 呼び出しが多すぎます (${Math.ceil(rl.retryAfterMs / 1000)}秒後に再試行)`,
+      extras: { retryAfterMs: rl.retryAfterMs },
+    });
+  }
+
   const url = parsed.data.url;
 
   const stream = new ReadableStream<Uint8Array>({

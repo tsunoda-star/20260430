@@ -9,6 +9,7 @@ import { requireRoleFromRequest, requireActionFromRequest } from '@/lib/server/s
 import { resolveTenantContext } from '@/lib/server/tenant';
 import { writeAudit } from '@/lib/server/audit';
 import { prisma } from '@/lib/server/db';
+import { llmRateLimiter } from '@/lib/server/rate-limit';
 
 /**
  * POST /api/v1/companies
@@ -42,6 +43,15 @@ export async function POST(req: NextRequest): Promise<Response> {
   }
 
   const { tenantId, userId } = await resolveTenantContext(guard.user);
+
+  // LLM 経路: テナント単位で 10/min レート制限
+  const rl = llmRateLimiter.consume(`company:${tenantId.toString()}`);
+  if (!rl.allowed) {
+    return problemResponse('rate_limited', {
+      detail: `LLM 呼び出しが多すぎます (${Math.ceil(rl.retryAfterMs / 1000)}秒後に再試行)`,
+      extras: { retryAfterMs: rl.retryAfterMs },
+    });
+  }
 
   // 1) SSRF safe crawl
   let crawlResult;

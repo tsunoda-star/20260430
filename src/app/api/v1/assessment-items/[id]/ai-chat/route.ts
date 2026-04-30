@@ -6,6 +6,7 @@ import { resolveTenantContext } from '@/lib/server/tenant';
 import { writeAudit } from '@/lib/server/audit';
 import { prisma } from '@/lib/server/db';
 import { streamAiChat, sanitizeAiChatMarkdown } from '@/lib/llm';
+import { llmRateLimiter } from '@/lib/server/rate-limit';
 
 /**
  * POST /api/v1/assessment-items/:id/ai-chat
@@ -58,6 +59,14 @@ export async function POST(
   }
 
   const { tenantId, userId } = await resolveTenantContext(guard.user);
+
+  const rl = llmRateLimiter.consume(`ai-chat:${tenantId.toString()}`);
+  if (!rl.allowed) {
+    return problemResponse('rate_limited', {
+      detail: `AI チャットの呼び出しが多すぎます (${Math.ceil(rl.retryAfterMs / 1000)}秒後に再試行)`,
+      extras: { retryAfterMs: rl.retryAfterMs },
+    });
+  }
 
   // ITEM-CONTEXT を構築するため AssessmentItem + ControlItem + GuidelineVersion + Guideline を取得
   const item = await prisma.assessmentItem.findFirst({

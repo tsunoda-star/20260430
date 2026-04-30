@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { estimate, CONFIDENCE_REVIEW_THRESHOLD } from '../estimate';
+import { CircuitBreaker } from '@/lib/server/circuit-breaker';
 import type { EstimationInput, LlmEstimationProvider } from '../types';
 
 const baseInput: EstimationInput = {
@@ -110,5 +111,25 @@ describe('estimate orchestrator', () => {
     const r = await estimate(baseInput); // no provider given, env unset
     expect(r.degraded).toBe(true);
     expect(r.provider).toBe('rule-based');
+  });
+
+  it('skips LLM call when circuit breaker is open (degraded fast-fail)', async () => {
+    // Pre-trip the breaker so its initial state is open
+    const circuit = new CircuitBreaker({
+      minCalls: 1,
+      errorRateThreshold: 1,
+      openDurationMs: 60_000,
+    });
+    circuit.recordFailure();
+    expect(circuit.getState()).toBe('open');
+
+    const provider: LlmEstimationProvider = {
+      name: 'test-llm',
+      estimate: vi.fn(async () => ({ rawResponse: '{}' })),
+    };
+    const r = await estimate(baseInput, { provider, circuit });
+    expect(r.degraded).toBe(true);
+    expect(r.provider).toContain('circuit-open');
+    expect(provider.estimate).not.toHaveBeenCalled();
   });
 });
