@@ -1,6 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import { PrismaNeon } from '@prisma/adapter-neon';
-import { neonConfig } from '@neondatabase/serverless';
+import { Pool, neonConfig } from '@neondatabase/serverless';
 import ws from 'ws';
 import { assertTenantScoped, TENANT_SCOPED_MODELS } from './db-tenant-guard';
 
@@ -40,8 +40,8 @@ function buildClient() {
     // Node.js (non-Edge) 環境では WebSocket 実装を ws に差し替えると
     // @neondatabase/serverless が HTTPS pooled 接続を確立できる。
     neonConfig.webSocketConstructor = ws as unknown as typeof globalThis.WebSocket;
-    const adapter = new PrismaNeon({ connectionString: process.env.DATABASE_URL });
-    // @ts-expect-error: adapter プロパティは driverAdapters preview feature 必須
+    const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+    const adapter = new PrismaNeon(pool);
     base = new PrismaClient({ adapter, log });
   } else {
     base = new PrismaClient({ log });
