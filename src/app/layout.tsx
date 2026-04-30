@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import { Manrope, Source_Sans_3, Noto_Sans_JP, JetBrains_Mono } from 'next/font/google';
+import { Toaster } from 'sonner';
 import { AxeReporter } from '@/components/dev/axe-reporter';
 import './globals.css';
 
@@ -70,6 +71,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="min-h-dvh bg-background font-body text-foreground antialiased">
         <AxeReporter />
         {children}
+        <Toaster position="top-center" richColors closeButton />
       </body>
     </html>
   );
