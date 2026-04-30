@@ -2,6 +2,9 @@ import type { Metadata, Viewport } from 'next';
 import { Manrope, Source_Sans_3, Noto_Sans_JP, JetBrains_Mono } from 'next/font/google';
 import { Toaster } from 'sonner';
 import { AxeReporter } from '@/components/dev/axe-reporter';
+import { RoleProvider } from '@/lib/auth/role-context';
+import { WhyDisabledBanner } from '@/components/why-disabled-banner';
+import { ViewerRouteGate } from '@/components/viewer-route-gate';
 import './globals.css';
 
 // 見出し: Manrope (design-system.yml typography.heading)
@@ -70,7 +73,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     >
       <body className="min-h-dvh bg-background font-body text-foreground antialiased">
         <AxeReporter />
-        {children}
+        <RoleProvider>
+          <WhyDisabledBanner />
+          <ViewerRouteGate />
+          {children}
+        </RoleProvider>
         <Toaster position="top-center" richColors closeButton />
       </body>
     </html>

@@ -10,6 +10,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { urlSchema, type UrlFormInput } from '@/lib/validation/url-schema';
+import { useRole } from '@/lib/auth/role-context';
+import { ExportCta } from '@/components/export-cta';
+import { VIEWER_HOME_PATH } from '@/lib/auth/viewer-guard';
 
 /**
  * S1 トップ画面 URL 入力フォーム。
@@ -19,6 +22,7 @@ import { urlSchema, type UrlFormInput } from '@/lib/validation/url-schema';
  */
 export function UrlInputForm() {
   const [submitting, setSubmitting] = useState(false);
+  const { can, role, status } = useRole();
 
   const {
     register,
@@ -28,6 +32,26 @@ export function UrlInputForm() {
     resolver: zodResolver(urlSchema),
     mode: 'onSubmit',
   });
+
+  // spec.md §5.3: Viewer は URL 入力 disabled, エクスポートのみ
+  if (status === 'authenticated' && role === 'viewer') {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+        className="mt-10 flex flex-col items-center gap-3 text-center"
+        aria-live="polite"
+      >
+        <p className="text-base text-muted-foreground">
+          閲覧者 (Viewer) はエクスポート機能のみご利用いただけます
+        </p>
+        <ExportCta href={VIEWER_HOME_PATH} label="エクスポート画面を開く" />
+      </motion.div>
+    );
+  }
+
+  const inputDisabled = !can('company.create') && status === 'authenticated';
 
   const onValid = async (data: UrlFormInput) => {
     setSubmitting(true);
@@ -66,11 +90,16 @@ export function UrlInputForm() {
           placeholder="https://your-company.example.jp"
           aria-invalid={errorMessage ? 'true' : 'false'}
           aria-describedby={errorMessage ? 'company-url-error' : undefined}
-          disabled={submitting}
+          disabled={submitting || inputDisabled}
           className="h-12 flex-1 text-base"
           {...register('url')}
         />
-        <Button type="submit" size="lg" disabled={submitting} className="h-12 sm:w-44">
+        <Button
+          type="submit"
+          size="lg"
+          disabled={submitting || inputDisabled}
+          className="h-12 sm:w-44"
+        >
           {submitting ? (
             <Loader2 className="size-5 animate-spin" aria-hidden="true" />
           ) : (
