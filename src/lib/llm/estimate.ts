@@ -50,7 +50,12 @@ export interface EstimateOptions {
 }
 
 function selectProvider(): LlmEstimationProvider | null {
-  const choice = (process.env.LLM_PRIMARY_PROVIDER ?? 'openai').toLowerCase();
+  // 互換: LLM_PROVIDER (typo) も読む
+  const choice = (
+    process.env.LLM_PRIMARY_PROVIDER ??
+    process.env.LLM_PROVIDER ??
+    'openai'
+  ).toLowerCase();
   if (choice === 'openai') {
     const apiKey = process.env.OPENAI_API_KEY;
     if (!apiKey) return null;

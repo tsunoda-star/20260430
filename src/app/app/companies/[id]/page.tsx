@@ -6,6 +6,7 @@ import { resolveTenantContext } from '@/lib/server/tenant';
 import { isDevAuthBypassEnabled, devSessionUser } from '@/lib/auth/dev-bypass';
 import { SESSION_COOKIE_NAME, verifyIdToken, type SessionUser } from '@/lib/auth/session';
 import { CompanyProfileCard } from '@/components/company-profile-card';
+import { CompanyFavicon } from '@/components/company-favicon';
 import { CreateAssessmentSection } from '@/components/create-assessment-section';
 
 export const dynamic = 'force-dynamic';
@@ -114,16 +115,19 @@ export default async function CompanyDetailPage({
         </Link>
       </nav>
 
-      <header className="mb-10">
-        <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
-          {company.domain}
-        </p>
-        <h1 className="mt-3 font-heading text-3xl font-bold leading-tight tracking-tight md:text-4xl">
-          {displayName}
-        </h1>
-        <p className="mt-2 text-xs text-muted-foreground">
-          解析完了 {new Date(company.createdAt).toLocaleString('ja-JP')}
-        </p>
+      <header className="mb-10 flex items-start gap-5">
+        <CompanyFavicon domain={company.domain} size={64} />
+        <div className="min-w-0 flex-1">
+          <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
+            {company.domain}
+          </p>
+          <h1 className="mt-2 font-heading text-3xl font-bold leading-tight tracking-tight md:text-4xl">
+            {displayName}
+          </h1>
+          <p className="mt-2 text-xs text-muted-foreground">
+            解析完了 {new Date(company.createdAt).toLocaleString('ja-JP')}
+          </p>
+        </div>
       </header>
 
       <section className="mb-10">

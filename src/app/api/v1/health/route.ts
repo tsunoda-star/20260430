@@ -44,14 +44,36 @@ async function checkDb(): Promise<HealthCheck> {
 }
 
 function checkLlm(): HealthCheck {
-  const provider = (process.env.LLM_PRIMARY_PROVIDER ?? 'openai').toLowerCase();
+  // 互換: 旧 env LLM_PROVIDER も拾う (typo の救済)
+  const provider = (
+    process.env.LLM_PRIMARY_PROVIDER ??
+    process.env.LLM_PROVIDER ??
+    'openai'
+  ).toLowerCase();
   if (provider === 'fallback') {
     return { name: 'llm', status: 'degraded', detail: 'fallback only' };
   }
-  if (!process.env.OPENAI_API_KEY) {
-    return { name: 'llm', status: 'degraded', detail: 'OPENAI_API_KEY not set' };
+  if (provider === 'anthropic') {
+    if (!process.env.ANTHROPIC_API_KEY) {
+      return {
+        name: 'llm',
+        status: 'degraded',
+        detail: 'ANTHROPIC_API_KEY not set',
+      };
+    }
+    return {
+      name: 'llm',
+      status: 'ok',
+      detail: `provider=anthropic, model=${process.env.ANTHROPIC_MODEL ?? 'claude-3-5-haiku-20241022'}`,
+    };
   }
-  return { name: 'llm', status: 'ok', detail: `provider=${provider}` };
+  if (provider === 'openai') {
+    if (!process.env.OPENAI_API_KEY) {
+      return { name: 'llm', status: 'degraded', detail: 'OPENAI_API_KEY not set' };
+    }
+    return { name: 'llm', status: 'ok', detail: `provider=openai` };
+  }
+  return { name: 'llm', status: 'degraded', detail: `unknown provider: ${provider}` };
 }
 
 function checkSession(): HealthCheck {

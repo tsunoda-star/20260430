@@ -7,6 +7,7 @@ import { isDevAuthBypassEnabled, devSessionUser } from '@/lib/auth/dev-bypass';
 import { SESSION_COOKIE_NAME, verifyIdToken, type SessionUser } from '@/lib/auth/session';
 import { AssessmentItemsList } from '@/components/assessment-items-list';
 import { ExportButtons } from '@/components/export-buttons';
+import { CompanyFavicon } from '@/components/company-favicon';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -127,16 +128,20 @@ export default async function AssessmentDetailPage({
         )}
       </nav>
 
-      <header className="mb-10">
-        <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
-          {a.company?.domain ?? '—'} ・ {a.baselineApplied ? 'baseline 適用' : 'baseline なし'}
-        </p>
-        <h1 className="mt-3 font-heading text-3xl font-bold leading-tight tracking-tight md:text-4xl">
-          {a.title}
-        </h1>
-        <p className="mt-2 text-xs text-muted-foreground">
-          作成 {new Date(a.createdAt).toLocaleString('ja-JP')}
-        </p>
+      <header className="mb-10 flex items-start gap-5">
+        {a.company ? <CompanyFavicon domain={a.company.domain} size={56} /> : null}
+        <div className="min-w-0 flex-1">
+          <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
+            {a.company?.domain ?? '—'} ・{' '}
+            {a.baselineApplied ? 'baseline 適用' : 'baseline なし'}
+          </p>
+          <h1 className="mt-2 font-heading text-3xl font-bold leading-tight tracking-tight md:text-4xl">
+            {a.title}
+          </h1>
+          <p className="mt-2 text-xs text-muted-foreground">
+            作成 {new Date(a.createdAt).toLocaleString('ja-JP')}
+          </p>
+        </div>
       </header>
 
       <section className="mb-10 grid gap-3 md:grid-cols-4">

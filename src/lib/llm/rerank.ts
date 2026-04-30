@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { createOpenAiProvider } from './providers/openai';
+import { createAnthropicProvider } from './providers/anthropic';
 import { maskSensitive } from './masking';
 import type { EstimationOutput, LlmEstimationProvider } from './types';
 
@@ -112,11 +113,22 @@ function identity(candidates: RerankCandidate[]): RerankResultEntry[] {
 }
 
 function selectProvider(): LlmEstimationProvider | null {
-  const choice = (process.env.LLM_PRIMARY_PROVIDER ?? 'openai').toLowerCase();
-  if (choice !== 'openai') return null;
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) return null;
-  return createOpenAiProvider({ apiKey, model: process.env.OPENAI_MODEL });
+  const choice = (
+    process.env.LLM_PRIMARY_PROVIDER ??
+    process.env.LLM_PROVIDER ??
+    'openai'
+  ).toLowerCase();
+  if (choice === 'openai') {
+    const apiKey = process.env.OPENAI_API_KEY;
+    if (!apiKey) return null;
+    return createOpenAiProvider({ apiKey, model: process.env.OPENAI_MODEL });
+  }
+  if (choice === 'anthropic') {
+    const apiKey = process.env.ANTHROPIC_API_KEY;
+    if (!apiKey) return null;
+    return createAnthropicProvider({ apiKey, model: process.env.ANTHROPIC_MODEL });
+  }
+  return null;
 }
 
 export async function rerankSuggestions(

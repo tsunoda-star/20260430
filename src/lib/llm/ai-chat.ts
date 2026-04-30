@@ -54,7 +54,11 @@ function selectProvider(opts: AiChatStreamOptions): {
   apiKey?: string;
   model?: string;
 } {
-  const choice = (process.env.LLM_PRIMARY_PROVIDER ?? 'openai').toLowerCase();
+  const choice = (
+    process.env.LLM_PRIMARY_PROVIDER ??
+    process.env.LLM_PROVIDER ??
+    'openai'
+  ).toLowerCase();
   if (choice === 'anthropic') {
     const apiKey = opts.apiKey ?? process.env.ANTHROPIC_API_KEY;
     if (!apiKey) return { provider: null };
