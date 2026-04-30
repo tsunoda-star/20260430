@@ -24,7 +24,13 @@ function isAllowedRole(v: string | undefined): v is (typeof ALLOWED_ROLES)[numbe
 }
 
 export function isDevAuthBypassEnabled(): boolean {
-  if (process.env.NODE_ENV !== 'development') return false;
+  // 注意: Next.js の middleware (edge runtime) では process.env.NODE_ENV が
+  // build 時に静的置換されるため、デプロイ後に env で切替えられない.
+  // そのため DEV_AUTH_BYPASS の有無のみで判定する (NODE_ENV チェック撤廃).
+  //
+  // ⚠️ Production 環境にデプロイする本番ビルドでは、Plesk / AWS / Vercel 等の
+  // 環境変数管理画面で DEV_AUTH_BYPASS を **絶対に設定しないこと**.
+  // 設定された瞬間に Cognito 認証が無効化され、誰でも管理者権限で操作可能となる.
   return process.env.DEV_AUTH_BYPASS === '1';
 }
 
