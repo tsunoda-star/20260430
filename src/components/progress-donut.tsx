@@ -89,7 +89,7 @@ export function ProgressDonut({
           </span>
         ) : null}
         {alertCount !== undefined && alertCount > 0 ? (
-          <span className="ml-2 inline-flex items-center rounded-full bg-destructive/10 px-2 py-0.5 text-xs font-medium text-destructive tabular-nums">
+          <span className="ml-2 inline-flex items-center rounded-full bg-destructive/10 px-2 py-0.5 text-xs font-medium tabular-nums text-destructive">
             期限超過 {alertCount}
           </span>
         ) : null}

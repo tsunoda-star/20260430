@@ -1,14 +1,16 @@
 import { cn } from '@/lib/utils';
 import type { CategoryAggregate, ItemStatus } from '@/lib/server/dashboard';
+import { ResponsiveTable } from './responsive-table';
 
 /**
- * spec.md §4 + Cycle 4.3 ダッシュボード:
+ * spec.md §4 + Cycle 4.3 ダッシュボード + Cycle 4.5 レスポンシブ:
  * カテゴリ × ステータスの件数ヒートマップ.
  * Tailwind classes のみで実装 (外部チャート依存なし).
  *
  * - 列 (status) は固定順 open → in_progress → done → not_applicable
  * - 行 (category) は呼び出し側でソート済 (total desc / name asc)
  * - 数値は tabular-nums で整形 (design-requirements.md typography.principles)
+ * - モバイル: ResponsiveTable で table → card 切替
  */
 
 const STATUS_ORDER: ItemStatus[] = ['open', 'in_progress', 'done', 'not_applicable'];
@@ -44,8 +46,8 @@ export function CategoryHeatmap({ categories, className }: CategoryHeatmapProps)
       </p>
     );
   }
-  return (
-    <div className={cn('overflow-auto', className)}>
+  const tableView = (
+    <div className="overflow-auto">
       <table className="w-full border-collapse text-sm" aria-label="カテゴリ別進捗">
         <thead>
           <tr>
@@ -96,4 +98,40 @@ export function CategoryHeatmap({ categories, className }: CategoryHeatmapProps)
       </table>
     </div>
   );
+
+  // モバイル時のカード列挙 — 1 カードに 1 カテゴリ + ステータス内訳
+  const cardView = (
+    <ul className="space-y-3" aria-label="カテゴリ別進捗 (モバイル)">
+      {categories.map((c) => (
+        <li
+          key={c.category}
+          className="rounded-md border border-border bg-card p-3 text-card-foreground shadow-sm"
+        >
+          <div className="flex items-center justify-between">
+            <p className="font-medium text-foreground">{c.category}</p>
+            <p className="text-sm font-semibold tabular-nums">合計 {c.total}</p>
+          </div>
+          <dl className="mt-2 grid grid-cols-2 gap-2 text-xs">
+            {STATUS_ORDER.map((s) => {
+              const n = c.byStatus[s];
+              return (
+                <div
+                  key={s}
+                  className={cn(
+                    'flex items-center justify-between rounded-sm px-2 py-1',
+                    intensityClass(n, max),
+                  )}
+                >
+                  <dt>{STATUS_LABEL_JA[s]}</dt>
+                  <dd className="font-medium tabular-nums">{n}</dd>
+                </div>
+              );
+            })}
+          </dl>
+        </li>
+      ))}
+    </ul>
+  );
+
+  return <ResponsiveTable className={className} table={tableView} cards={cardView} />;
 }
