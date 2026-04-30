@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { SESSION_COOKIE_NAME, verifyIdToken } from '@/lib/auth/session';
+import { isDevAuthBypassEnabled } from '@/lib/auth/dev-bypass';
 
 /**
  * Middleware — protected routes でセッション検証。
@@ -21,6 +22,12 @@ export async function middleware(request: NextRequest): Promise<NextResponse | u
     return undefined;
   }
   if (ALWAYS_OPEN.includes(pathname)) {
+    return undefined;
+  }
+
+  // Dev only: NODE_ENV=development + DEV_AUTH_BYPASS=1 で middleware を skip.
+  // production ビルドでは isDevAuthBypassEnabled() が常に false。
+  if (isDevAuthBypassEnabled()) {
     return undefined;
   }
 

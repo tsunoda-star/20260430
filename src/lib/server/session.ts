@@ -8,6 +8,7 @@ import {
   type SessionUser,
   type UserRole,
 } from '@/lib/auth/session';
+import { isDevAuthBypassEnabled, devSessionUser } from '@/lib/auth/dev-bypass';
 import { problemResponse } from './problem-details';
 import { canPerform, whyNotAllowedJa, type PermissionAction } from './permissions';
 
@@ -24,6 +25,10 @@ export type RoleGuardResult =
   | { ok: false; response: ReturnType<typeof problemResponse> };
 
 export async function getSessionFromRequest(req: NextRequest): Promise<SessionUser | null> {
+  // Dev only: NODE_ENV=development + DEV_AUTH_BYPASS=1 で固定 SessionUser を返す
+  if (isDevAuthBypassEnabled()) {
+    return devSessionUser();
+  }
   const token = req.cookies.get(SESSION_COOKIE_NAME)?.value;
   if (!token) return null;
   try {
