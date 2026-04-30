@@ -9,6 +9,7 @@ import {
   type UserRole,
 } from '@/lib/auth/session';
 import { problemResponse } from './problem-details';
+import { canPerform, whyNotAllowedJa, type PermissionAction } from './permissions';
 
 /**
  * Route Handler 用セッション解決ヘルパー。
@@ -46,6 +47,31 @@ export async function requireRoleFromRequest(
       ok: false,
       response: problemResponse('forbidden', {
         detail: `requires role >= ${min}, current=${user.role}`,
+      }),
+    };
+  }
+  return { ok: true, user };
+}
+
+/**
+ * 操作 (PermissionAction) ベースの認可ガード。
+ * spec.md §6 に従い、ハードコードされたロールリストではなく
+ * `canPerform(user.role, action)` で判定する。
+ */
+export async function requireActionFromRequest(
+  req: NextRequest,
+  action: PermissionAction,
+): Promise<RoleGuardResult> {
+  const user = await getSessionFromRequest(req);
+  if (!user) {
+    return { ok: false, response: problemResponse('unauthorized') };
+  }
+  if (!canPerform(user.role, action)) {
+    return {
+      ok: false,
+      response: problemResponse('forbidden', {
+        detail: whyNotAllowedJa(user.role, action) ?? 'forbidden',
+        extras: { action, role: user.role },
       }),
     };
   }
