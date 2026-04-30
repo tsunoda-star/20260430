@@ -40,6 +40,10 @@ function buildClient() {
     // Node.js (non-Edge) 環境では WebSocket 実装を ws に差し替えると
     // @neondatabase/serverless が HTTPS pooled 接続を確立できる。
     neonConfig.webSocketConstructor = ws as unknown as typeof globalThis.WebSocket;
+    // 一部ホスティング (Pro-Web Plesk 等) は WebSocket upgrade を遮断するため、
+    // クエリ実行を HTTPS fetch (POST /sql) にフォールバック.
+    // 参考: https://neon.tech/docs/serverless/serverless-driver
+    neonConfig.poolQueryViaFetch = true;
     const pool = new Pool({ connectionString: process.env.DATABASE_URL });
     const adapter = new PrismaNeon(pool);
     base = new PrismaClient({ adapter, log });

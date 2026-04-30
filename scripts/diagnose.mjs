@@ -70,6 +70,7 @@ try {
   const { neonConfig, Pool } = await import('@neondatabase/serverless');
   const { default: ws } = await import('ws');
   neonConfig.webSocketConstructor = ws;
+  neonConfig.poolQueryViaFetch = true;
   const { PrismaNeon } = await import('@prisma/adapter-neon');
   const { PrismaClient } = await import('@prisma/client');
   const pool = new Pool({ connectionString: process.env.DATABASE_URL });
