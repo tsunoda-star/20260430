@@ -1,0 +1,43 @@
+# spec.md / Phase 5 / Cycle 5.2: 結合テスト用ローカル環境.
+# - PostgreSQL 15 を起動し、テストごとに DB 全体を tear-down → migrate → seed
+# - Next.js コンテナは必要時のみ起動 (E2E /test --mode e2e で使用; Cycle 5.3)
+# - 本ファイルはローカル開発・結合テスト専用. 本番には未使用.
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: sct-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: sct
+      POSTGRES_PASSWORD: sct_pw
+      POSTGRES_DB: security_checklist_tool
+    ports:
+      - '5432:5432'
+    volumes:
+      - sct-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U sct -d security_checklist_tool']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # Next.js — Cycle 5.3 (E2E) 用. 通常の開発は host 側で `npm run dev` を推奨。
+  app:
+    profiles: ['e2e'] # `docker compose --profile e2e up` で初めて起動
+    image: node:20-alpine
+    working_dir: /app
+    command: sh -c 'npm ci && npx prisma generate && npm run build && npm start'
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: postgresql://sct:sct_pw@postgres:5432/security_checklist_tool?schema=public
+    ports:
+      - '3000:3000'
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./:/app
+      - /app/node_modules
+
+volumes:
+  sct-postgres-data:
