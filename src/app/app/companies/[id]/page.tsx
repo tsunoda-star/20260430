@@ -6,7 +6,7 @@ import { resolveTenantContext } from '@/lib/server/tenant';
 import { isDevAuthBypassEnabled, devSessionUser } from '@/lib/auth/dev-bypass';
 import { SESSION_COOKIE_NAME, verifyIdToken, type SessionUser } from '@/lib/auth/session';
 import { CompanyProfileCard } from '@/components/company-profile-card';
-import { CreateAssessmentButton } from '@/components/create-assessment-button';
+import { CreateAssessmentSection } from '@/components/create-assessment-section';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -165,26 +165,12 @@ export default async function CompanyDetailPage({
         </div>
       </section>
 
-      <section className="mb-10 overflow-hidden rounded-2xl border bg-brand-soft">
-        <div className="px-7 py-8 text-center md:px-10 md:py-10">
-          <p className="font-heading text-xs font-semibold uppercase tracking-[0.2em] text-brand-ink">
-            Next Step
-          </p>
-          <h2 className="mt-2 font-heading text-2xl font-bold tracking-tight md:text-3xl">
-            27 ガイドライン横断のチェックシートを生成
-          </h2>
-          <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-foreground/70">
-            上記の業種・規模に合わせて、IPA・METI・NIST など主要ガイドラインから
-            必要な対策を自動で抽出します。
-          </p>
-          <div className="mt-7">
-            <CreateAssessmentButton
-              companyId={company.id.toString()}
-              companyDisplayName={displayName}
-            />
-          </div>
-        </div>
-      </section>
+      <div className="mb-10">
+        <CreateAssessmentSection
+          companyId={company.id.toString()}
+          companyDisplayName={displayName}
+        />
+      </div>
 
       {company.assessments.length > 0 ? (
         <section>
