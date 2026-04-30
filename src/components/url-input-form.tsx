@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -34,7 +34,11 @@ const INITIAL_STAGES: ProgressStage[] = [
 ];
 
 
-export function UrlInputForm(): JSX.Element {
+interface UrlInputFormProps {
+  prefillUrl?: string;
+}
+
+export function UrlInputForm({ prefillUrl }: UrlInputFormProps = {}): JSX.Element {
   const { can, role, status: roleStatus } = useRole();
   const router = useRouter();
 
@@ -42,6 +46,7 @@ export function UrlInputForm(): JSX.Element {
   const [stages, setStages] = useState<ProgressStage[]>(INITIAL_STAGES);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [streamActive, setStreamActive] = useState(false);
+  const lastSubmittedUrlRef = useRef<string | null>(null);
 
   const {
     register,
@@ -50,6 +55,7 @@ export function UrlInputForm(): JSX.Element {
   } = useForm<UrlFormInput>({
     resolver: zodResolver(urlSchema),
     mode: 'onSubmit',
+    defaultValues: prefillUrl ? { url: prefillUrl } : undefined,
   });
 
   const handleEvent = useCallback(
@@ -102,8 +108,11 @@ export function UrlInputForm(): JSX.Element {
               description: '次の画面で属性をご確認ください',
             });
           }
-          if (data.id) {
-            router.push(`/app/companies/${data.id}`);
+          // ID ベースから URL ベースのパーマリンクに切替: /results?url=...
+          // 同じ URL を再分析しても同じ画面に着くため共有しやすい。
+          const submitted = lastSubmittedUrlRef.current ?? data.domain;
+          if (submitted) {
+            router.push(`/results?url=${encodeURIComponent(submitted)}`);
           }
           break;
         }
@@ -132,6 +141,7 @@ export function UrlInputForm(): JSX.Element {
     async (data: UrlFormInput) => {
       setStreamActive(true);
       setErrorMessage(null);
+      lastSubmittedUrlRef.current = data.url;
       setStages(
         INITIAL_STAGES.map((s, i) => ({
           ...s,

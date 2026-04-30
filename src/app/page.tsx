@@ -6,7 +6,12 @@ import { HistoryEmptyState } from '@/components/history-empty-state';
  * S1 トップ画面 — 一画面起点UX。
  * spec.md §5.1 / design-requirements.md hero design 準拠。
  */
-export default function HomePage() {
+export default function HomePage({
+  searchParams,
+}: {
+  searchParams?: { url?: string };
+}) {
+  const prefillUrl = searchParams?.url;
   return (
     <main className="flex min-h-dvh flex-col items-center justify-start px-4 pb-20 pt-20">
       <section className="w-full max-w-2xl text-center">
@@ -29,7 +34,7 @@ export default function HomePage() {
           あなたの会社に必要な対策だけを自動で抽出します。
         </p>
 
-        <UrlInputForm />
+        <UrlInputForm prefillUrl={prefillUrl} />
 
         <ul className="mt-10 grid grid-cols-3 gap-2 text-center text-xs md:gap-4">
           <Stat number="27" label="ガイドライン" />

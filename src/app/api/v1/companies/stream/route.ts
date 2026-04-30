@@ -169,9 +169,21 @@ export async function POST(req: NextRequest): Promise<Response> {
           provider: est.provider,
         });
 
-        // 3) Persist (upsert)
+        // 3) Persist (upsert) — クロール抽出物 (title/description/snippet) も
+        //    inferredData.crawl に保存して結果画面で表示する
         const finalUrl = new URL(crawlResult.finalUrl);
         const domain = finalUrl.hostname.toLowerCase();
+        const inferredData = {
+          ...est.output,
+          crawl: {
+            title: crawlResult.extraction.title,
+            description: crawlResult.extraction.description,
+            // textSnippet は冗長なので冒頭 600 文字のみ
+            snippet: crawlResult.extraction.textSnippet.slice(0, 600),
+            finalUrl: crawlResult.finalUrl,
+            fetchedAt: new Date().toISOString(),
+          },
+        };
         const company = await prisma.company.upsert({
           where: { tenantId_domain: { tenantId, domain } },
           create: {
@@ -180,7 +192,7 @@ export async function POST(req: NextRequest): Promise<Response> {
             displayName: crawlResult.extraction.title || domain,
             industry: est.output.industry,
             size: est.output.size,
-            inferredData: est.output as unknown as object,
+            inferredData: inferredData as unknown as object,
             inferenceConfidence: est.output.confidence,
             userOverrides: {},
             createdById: userId,
@@ -189,7 +201,7 @@ export async function POST(req: NextRequest): Promise<Response> {
             displayName: crawlResult.extraction.title || domain,
             industry: est.output.industry,
             size: est.output.size,
-            inferredData: est.output as unknown as object,
+            inferredData: inferredData as unknown as object,
             inferenceConfidence: est.output.confidence,
           },
           select: { id: true, domain: true },

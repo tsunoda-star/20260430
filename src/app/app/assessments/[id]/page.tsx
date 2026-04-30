@@ -156,7 +156,7 @@ export default async function AssessmentDetailPage({
       <nav className="mb-8 text-sm">
         {aCompany ? (
           <Link
-            href={`/app/companies/${aCompany.id}`}
+            href={`/results?url=${encodeURIComponent(`https://${aCompany.domain}/`)}`}
             className="text-muted-foreground transition-colors hover:text-foreground"
           >
             ← {aCompany.displayName ?? aCompany.domain}
