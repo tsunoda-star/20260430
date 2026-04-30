@@ -44,8 +44,10 @@ export async function resolveTenantContext(user: SessionUser): Promise<TenantCon
     }
   }
 
-  const existingUser = await prisma.user.findUnique({
-    where: { externalId: user.sub },
+  // User は tenant-scoped なので tenant-guard を満たすために findFirst で
+  // tenantId + externalId 検索する (findUnique({externalId}) は guard で拒否される)。
+  const existingUser = await prisma.user.findFirst({
+    where: { tenantId: tenant.id, externalId: user.sub },
     select: { id: true },
   });
   let internalUserId: bigint;
@@ -69,8 +71,8 @@ export async function resolveTenantContext(user: SessionUser): Promise<TenantCon
       });
       internalUserId = created.id;
     } catch {
-      const refetched = await prisma.user.findUnique({
-        where: { externalId: user.sub },
+      const refetched = await prisma.user.findFirst({
+        where: { tenantId: tenant.id, externalId: user.sub },
         select: { id: true },
       });
       if (!refetched) throw new Error('user_resolve_failed');
