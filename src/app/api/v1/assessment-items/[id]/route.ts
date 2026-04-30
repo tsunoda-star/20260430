@@ -6,6 +6,7 @@ import { requireActionFromRequest } from '@/lib/server/session';
 import { resolveTenantContext } from '@/lib/server/tenant';
 import { writeAudit } from '@/lib/server/audit';
 import { canPerform } from '@/lib/server/permissions';
+import { checkReviewerCanEdit, reviewerForbiddenMessage } from '@/lib/server/reviewer-policy';
 import { prisma } from '@/lib/server/db';
 
 /**
@@ -89,6 +90,15 @@ export async function PATCH(
     },
   });
   if (!existing) return problemResponse('not_found');
+
+  // spec.md §6.2 + Cycle 3.5: reviewer は status=done の項目のみ編集可
+  const reviewerCheck = checkReviewerCanEdit(baseGuard.user.role, existing.status);
+  if (!reviewerCheck.ok) {
+    return problemResponse('forbidden', {
+      detail: reviewerForbiddenMessage(existing.status),
+      extras: { role: baseGuard.user.role, currentStatus: existing.status },
+    });
+  }
 
   const updateData: {
     status?: 'open' | 'in_progress' | 'done' | 'not_applicable';
