@@ -14,24 +14,68 @@ export interface TenantContext {
   userId: bigint;
 }
 
+/**
+ * @prisma/adapter-neon (Pool) は upsert / transaction の際に
+ * pool.connect() で WebSocket 接続を張るが、一部ホスティング (Pro-Web Plesk 等)
+ * は WebSocket upgrade を遮断するため "Connection terminated unexpectedly"
+ * になる。pool.query() のみ poolQueryViaFetch=true で HTTPS フォールバック
+ * できるので、upsert を分解して単発クエリ (findUnique → create / update) に
+ * 置き換える。
+ */
 export async function resolveTenantContext(user: SessionUser): Promise<TenantContext> {
-  const tenant = await prisma.tenant.upsert({
+  let tenant = await prisma.tenant.findUnique({
     where: { externalId: user.orgId },
-    update: {},
-    create: { externalId: user.orgId, name: user.orgId },
     select: { id: true },
   });
-  const internalUser = await prisma.user.upsert({
+  if (!tenant) {
+    try {
+      tenant = await prisma.tenant.create({
+        data: { externalId: user.orgId, name: user.orgId },
+        select: { id: true },
+      });
+    } catch {
+      // 並行で別リクエストが create した場合に unique 制約違反になるが、
+      // その場合は findUnique で再取得すれば済む。
+      tenant = await prisma.tenant.findUnique({
+        where: { externalId: user.orgId },
+        select: { id: true },
+      });
+      if (!tenant) throw new Error('tenant_resolve_failed');
+    }
+  }
+
+  const existingUser = await prisma.user.findUnique({
     where: { externalId: user.sub },
-    update: { email: user.email, name: user.name ?? user.email, role: user.role },
-    create: {
-      tenantId: tenant.id,
-      externalId: user.sub,
-      email: user.email,
-      name: user.name ?? user.email,
-      role: user.role,
-    },
     select: { id: true },
   });
-  return { tenantId: tenant.id, userId: internalUser.id };
+  let internalUserId: bigint;
+  if (existingUser) {
+    await prisma.user.update({
+      where: { id: existingUser.id },
+      data: { email: user.email, name: user.name ?? user.email, role: user.role },
+    });
+    internalUserId = existingUser.id;
+  } else {
+    try {
+      const created = await prisma.user.create({
+        data: {
+          tenantId: tenant.id,
+          externalId: user.sub,
+          email: user.email,
+          name: user.name ?? user.email,
+          role: user.role,
+        },
+        select: { id: true },
+      });
+      internalUserId = created.id;
+    } catch {
+      const refetched = await prisma.user.findUnique({
+        where: { externalId: user.sub },
+        select: { id: true },
+      });
+      if (!refetched) throw new Error('user_resolve_failed');
+      internalUserId = refetched.id;
+    }
+  }
+  return { tenantId: tenant.id, userId: internalUserId };
 }
