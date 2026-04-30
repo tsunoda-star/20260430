@@ -203,9 +203,11 @@ export function AssessmentItemDrawer({ item, onClose, onUpdate }: Props): JSX.El
                   onClick={() => updateStatus(s)}
                   disabled={savingField === 'status'}
                   className={
-                    'rounded-md border px-3 py-1.5 text-xs transition-colors ' +
+                    'rounded-full border px-3.5 py-1.5 text-xs transition-colors ' +
                     (item.status === s
-                      ? 'border-foreground bg-foreground text-background'
+                      ? s === 'done'
+                        ? 'border-brand bg-brand text-white'
+                        : 'border-foreground bg-foreground text-background'
                       : 'hover:bg-muted')
                   }
                 >
@@ -263,7 +265,7 @@ export function AssessmentItemDrawer({ item, onClose, onUpdate }: Props): JSX.El
                 type="button"
                 onClick={askAi}
                 disabled={!question.trim() || answer?.loading}
-                className="rounded-md bg-foreground px-3 py-2 text-sm text-background hover:bg-foreground/90 disabled:opacity-50"
+                className="rounded-full bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand-ink disabled:opacity-50"
               >
                 送信
               </button>

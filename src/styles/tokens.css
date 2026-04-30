@@ -36,6 +36,11 @@
   --success: 165 92% 30%;            /* #079173 Emerald */
   --warning: 32 92% 43%;             /* #D97706 Amber */
 
+  /* ---- Brand surfaces (hmhm-style chat bubbles / hero CTA) -------- */
+  --brand-green: 158 64% 40%;        /* #22C55E primary CTA */
+  --brand-green-soft: 152 76% 95%;   /* #ECFDF5 chat bubble bg */
+  --brand-green-ink: 158 76% 22%;    /* #15803D text on soft */
+
   /* ---- Lines / focus ---------------------------------------------- */
   --border: 214 32% 91%;             /* #E2E8F0 Cool Gray */
   --input: 214 32% 91%;

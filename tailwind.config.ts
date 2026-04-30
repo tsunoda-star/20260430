@@ -73,6 +73,11 @@ const config: Config = {
         border: 'hsl(var(--border) / <alpha-value>)',
         input: 'hsl(var(--input) / <alpha-value>)',
         ring: 'hsl(var(--ring) / <alpha-value>)',
+        brand: {
+          DEFAULT: 'hsl(var(--brand-green) / <alpha-value>)',
+          soft: 'hsl(var(--brand-green-soft) / <alpha-value>)',
+          ink: 'hsl(var(--brand-green-ink) / <alpha-value>)',
+        },
       },
       // design-system.yml borders.radius
       borderRadius: {

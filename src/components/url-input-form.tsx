@@ -232,7 +232,7 @@ export function UrlInputForm(): JSX.Element {
             type="submit"
             size="lg"
             disabled={submitting || inputDisabled}
-            className="h-12 sm:w-44"
+            className="h-12 rounded-full bg-brand text-white hover:bg-brand-ink sm:w-44"
           >
             {submitting ? (
               <Loader2 className="size-5 animate-spin" aria-hidden="true" />

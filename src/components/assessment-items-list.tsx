@@ -42,7 +42,7 @@ const STATUS_LABEL: Record<ItemStatus, string> = {
 const STATUS_DOT: Record<ItemStatus, string> = {
   open: 'bg-muted-foreground/40',
   in_progress: 'bg-amber-500',
-  done: 'bg-emerald-600',
+  done: 'bg-brand',
   not_applicable: 'bg-muted-foreground/20',
 };
 
@@ -83,9 +83,9 @@ export function AssessmentItemsList({ items: initialItems }: Props): JSX.Element
               type="button"
               onClick={() => setStatusFilter(s)}
               className={
-                'rounded-full px-2.5 py-1 transition-colors ' +
+                'rounded-full px-3 py-1 transition-colors ' +
                 (statusFilter === s
-                  ? 'bg-foreground text-background'
+                  ? 'bg-brand text-white'
                   : 'bg-muted hover:bg-muted/80')
               }
             >

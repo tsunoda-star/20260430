@@ -103,22 +103,25 @@ export function CompanyProfileCard({
   };
 
   return (
-    <section className="rounded-xl border bg-background">
-      <header className="flex items-center justify-between border-b px-6 py-4">
-        <h2 className="font-heading text-base font-semibold tracking-tight">
-          推定プロフィールの確認
-        </h2>
-        <div className="flex items-center gap-2 text-xs">
+    <section className="overflow-hidden rounded-2xl border bg-background">
+      <header className="flex items-center justify-between border-b bg-muted/30 px-6 py-3.5">
+        <div className="flex items-center gap-2">
+          <span className="h-2 w-2 rounded-full bg-brand" aria-hidden />
+          <h2 className="font-heading text-sm font-semibold tracking-tight">
+            推定プロフィール
+          </h2>
+        </div>
+        <div className="flex items-center gap-3 text-xs">
           {savedFlash ? (
-            <span className="text-emerald-600">✓ 保存しました</span>
+            <span className="text-brand-ink">✓ 保存しました</span>
           ) : null}
           {!editing ? (
             <button
               type="button"
               onClick={() => setEditing(true)}
-              className="text-foreground underline-offset-2 hover:underline"
+              className="rounded-full border border-foreground/20 px-3 py-1 transition-colors hover:bg-foreground hover:text-background"
             >
-              修正する
+              内容を確認・修正
             </button>
           ) : null}
         </div>
@@ -183,7 +186,7 @@ export function CompanyProfileCard({
               type="button"
               onClick={save}
               disabled={saving}
-              className="rounded-md bg-foreground px-4 py-2 text-sm font-medium text-background hover:bg-foreground/90 disabled:opacity-50"
+              className="rounded-full bg-brand px-5 py-2 text-sm font-semibold text-white transition-colors hover:bg-brand-ink disabled:opacity-50"
             >
               {saving ? '保存中...' : '保存して確定'}
             </button>
@@ -191,17 +194,17 @@ export function CompanyProfileCard({
         </div>
       )}
 
-      <footer className="flex items-center gap-3 border-t px-6 py-3 text-xs text-muted-foreground">
+      <footer className="flex items-center gap-3 border-t bg-muted/10 px-6 py-3 text-xs text-muted-foreground">
         <span>AI 推定信頼度</span>
         <div className="h-1.5 w-32 overflow-hidden rounded-full bg-muted">
           <div
-            className="h-full bg-foreground transition-all"
+            className="h-full bg-brand transition-all"
             style={{ width: `${confidencePct}%` }}
           />
         </div>
-        <span>{confidencePct}%</span>
+        <span className="tabular-nums">{confidencePct}%</span>
         {confidencePct < 60 ? (
-          <span className="ml-auto text-amber-600">低め — 手動で確認推奨</span>
+          <span className="ml-auto text-amber-700">低め — 手動で確認推奨</span>
         ) : null}
       </footer>
 

@@ -113,7 +113,7 @@ export function CreateAssessmentButton({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="inline-flex items-center gap-2 rounded-full bg-foreground px-7 py-3 text-sm font-semibold text-background transition-all hover:bg-foreground/90 hover:shadow-md"
+        className="inline-flex items-center gap-2 rounded-full bg-brand px-8 py-3.5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-brand-ink hover:shadow-md"
       >
         チェックシートを生成
         <span aria-hidden>→</span>
@@ -263,7 +263,7 @@ export function CreateAssessmentButton({
                 type="button"
                 onClick={submit}
                 disabled={submitting || loading || !data}
-                className="rounded-md bg-foreground px-5 py-2 text-sm font-semibold text-background hover:bg-foreground/90 disabled:opacity-50"
+                className="rounded-full bg-brand px-6 py-2 text-sm font-semibold text-white hover:bg-brand-ink disabled:opacity-50"
               >
                 {submitting ? '作成中...' : '作成する'}
               </button>

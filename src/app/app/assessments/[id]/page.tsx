@@ -87,6 +87,7 @@ export default async function AssessmentDetailPage({
   const doneCount = a.items.filter((it) => it.status === 'done').length;
   const inProgressCount = a.items.filter((it) => it.status === 'in_progress').length;
   const naCount = a.items.filter((it) => it.status === 'not_applicable').length;
+  const openCount = totalCount - doneCount - inProgressCount - naCount;
   const progressPct =
     totalCount === 0 ? 0 : Math.round(((doneCount + naCount) / totalCount) * 100);
 
@@ -107,66 +108,98 @@ export default async function AssessmentDetailPage({
   }));
 
   return (
-    <main className="mx-auto max-w-5xl px-4 py-10 md:py-14">
-      <nav className="mb-6 text-sm text-muted-foreground">
+    <main className="mx-auto max-w-4xl px-5 py-10 md:py-14">
+      <nav className="mb-8 text-sm">
         {a.company ? (
-          <Link href={`/app/companies/${a.company.id}`} className="hover:underline">
-            ← {a.company.displayName}
+          <Link
+            href={`/app/companies/${a.company.id}`}
+            className="text-muted-foreground transition-colors hover:text-foreground"
+          >
+            ← {a.company.displayName ?? a.company.domain}
           </Link>
         ) : (
-          <Link href="/" className="hover:underline">
+          <Link
+            href="/"
+            className="text-muted-foreground transition-colors hover:text-foreground"
+          >
             ← トップに戻る
           </Link>
         )}
       </nav>
 
-      <header className="mb-8 border-b pb-6">
-        <p className="text-xs text-muted-foreground">
-          {a.company?.domain ?? '—'} ・ {a.baselineApplied ? 'ベースライン適用' : ''} ・
-          作成: {new Date(a.createdAt).toLocaleString('ja-JP')}
+      <header className="mb-10">
+        <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
+          {a.company?.domain ?? '—'} ・ {a.baselineApplied ? 'baseline 適用' : 'baseline なし'}
         </p>
-        <h1 className="mt-2 font-heading text-2xl font-bold tracking-tight md:text-3xl">
+        <h1 className="mt-3 font-heading text-3xl font-bold leading-tight tracking-tight md:text-4xl">
           {a.title}
         </h1>
-
-        <div className="mt-6 grid gap-3 md:grid-cols-4">
-          <div className="rounded-lg border bg-muted/20 p-4">
-            <p className="text-xs uppercase tracking-wide text-muted-foreground">完了</p>
-            <p className="mt-1 text-2xl font-bold">{doneCount}</p>
-          </div>
-          <div className="rounded-lg border bg-muted/20 p-4">
-            <p className="text-xs uppercase tracking-wide text-muted-foreground">対応中</p>
-            <p className="mt-1 text-2xl font-bold">{inProgressCount}</p>
-          </div>
-          <div className="rounded-lg border bg-muted/20 p-4">
-            <p className="text-xs uppercase tracking-wide text-muted-foreground">対象外</p>
-            <p className="mt-1 text-2xl font-bold">{naCount}</p>
-          </div>
-          <div className="rounded-lg border bg-muted/20 p-4">
-            <p className="text-xs uppercase tracking-wide text-muted-foreground">全体</p>
-            <p className="mt-1 text-2xl font-bold">{totalCount}</p>
-          </div>
-        </div>
-
-        <div className="mt-4 space-y-1.5">
-          <div className="flex items-center justify-between text-xs text-muted-foreground">
-            <span>進捗</span>
-            <span>{progressPct}%</span>
-          </div>
-          <div className="h-2 overflow-hidden rounded-full bg-muted">
-            <div
-              className="h-full bg-foreground transition-all"
-              style={{ width: `${progressPct}%` }}
-            />
-          </div>
-        </div>
-
-        <div className="mt-6 flex flex-wrap gap-2">
-          <ExportButtons assessmentId={a.id.toString()} />
-        </div>
+        <p className="mt-2 text-xs text-muted-foreground">
+          作成 {new Date(a.createdAt).toLocaleString('ja-JP')}
+        </p>
       </header>
 
-      <AssessmentItemsList items={items} />
+      <section className="mb-10 grid gap-3 md:grid-cols-4">
+        <Stat label="完了" value={doneCount} accent="brand" />
+        <Stat label="対応中" value={inProgressCount} accent="amber" />
+        <Stat label="未着手" value={openCount} accent="neutral" />
+        <Stat label="対象外" value={naCount} accent="neutral" />
+      </section>
+
+      <section className="mb-10 rounded-2xl border bg-brand-soft p-6 md:p-8">
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <p className="font-heading text-xs font-semibold uppercase tracking-[0.2em] text-brand-ink">
+            進捗
+          </p>
+          <p className="font-heading text-2xl font-bold tabular-nums text-brand-ink">
+            {progressPct}%
+          </p>
+        </div>
+        <div className="mt-3 h-2 overflow-hidden rounded-full bg-background/60">
+          <div
+            className="h-full bg-brand transition-all"
+            style={{ width: `${progressPct}%` }}
+          />
+        </div>
+        <div className="mt-5 flex flex-wrap gap-2">
+          <ExportButtons assessmentId={a.id.toString()} />
+        </div>
+      </section>
+
+      <section>
+        <h2 className="mb-4 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+          チェック項目 ({totalCount} 件)
+        </h2>
+        <AssessmentItemsList items={items} />
+      </section>
     </main>
+  );
+}
+
+function Stat({
+  label,
+  value,
+  accent,
+}: {
+  label: string;
+  value: number;
+  accent: 'brand' | 'amber' | 'neutral';
+}): JSX.Element {
+  const dotClass =
+    accent === 'brand'
+      ? 'bg-brand'
+      : accent === 'amber'
+        ? 'bg-amber-500'
+        : 'bg-muted-foreground/30';
+  return (
+    <div className="rounded-xl border bg-background p-5">
+      <div className="flex items-center gap-2">
+        <span className={`h-2 w-2 rounded-full ${dotClass}`} aria-hidden />
+        <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+          {label}
+        </p>
+      </div>
+      <p className="mt-2 font-heading text-3xl font-bold tabular-nums">{value}</p>
+    </div>
   );
 }
