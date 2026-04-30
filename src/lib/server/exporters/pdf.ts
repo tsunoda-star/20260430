@@ -1,3 +1,5 @@
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 import PDFDocument from 'pdfkit';
 import {
   type ExportArtifact,
@@ -7,16 +9,65 @@ import {
 } from './types';
 
 /**
- * spec.md §4.4 + Cycle 4.1: PDF エクスポート.
+ * spec.md §4.4 + Cycle 4.1 + Cycle 7.3c: PDF エクスポート.
  *
  * - pdfkit で 1 ページに表紙 (Assessment / Company) + 制御項目リスト
- * - 大規模 note は cap (DoS ガード)
- * - 日本語フォント埋め込みは Wave 4.5 (a11y / responsive) で対応 — 本実装は ASCII 主体表示
- *   (現状 controlTitle 等の漢字は内蔵 Helvetica で代用文字に置換される可能性あり)
- *   完全な日本語表示は後続 Cycle で対応予定。
+ * - 大規模 note は 4k 字 cap (DoS ガード)
+ * - 日本語フォント (Noto Sans CJK JP SubsetOTF) を public/fonts に
+ *   登録できる場合は使用、なければ Helvetica fallback
+ *   セットアップ: `node scripts/download-fonts.mjs`
  */
 
 const CELL_MAX = 4_000;
+
+const FONT_DIR = path.resolve(process.cwd(), 'public', 'fonts');
+
+interface FontConfig {
+  /** pdfkit 内部の論理フォント名 */
+  jpRegular: string;
+  jpBold: string;
+  /** ASCII / 数字に使うフォント */
+  asciiRegular: string;
+  asciiBold: string;
+  /** Noto JP TTF/OTF が読み込めたか */
+  hasJp: boolean;
+}
+
+/**
+ * フォント候補を pdfkit doc に登録し、利用可能なフォント名集合を返す。
+ * テスト容易化のため fontDir を引数で渡せる。
+ */
+export function registerFonts(
+  doc: InstanceType<typeof PDFDocument>,
+  fontDir = FONT_DIR,
+): FontConfig {
+  const cfg: FontConfig = {
+    jpRegular: 'Helvetica',
+    jpBold: 'Helvetica-Bold',
+    asciiRegular: 'Helvetica',
+    asciiBold: 'Helvetica-Bold',
+    hasJp: false,
+  };
+
+  const reg = path.join(fontDir, 'NotoSansJP-Regular.otf');
+  const bold = path.join(fontDir, 'NotoSansJP-Bold.otf');
+  if (!fs.existsSync(reg)) return cfg;
+  try {
+    doc.registerFont('NotoJP', reg);
+    cfg.jpRegular = 'NotoJP';
+    if (fs.existsSync(bold)) {
+      doc.registerFont('NotoJP-Bold', bold);
+      cfg.jpBold = 'NotoJP-Bold';
+    } else {
+      // Bold が無くても Regular を太字代用 (見た目は太くないが文字化けしない)
+      cfg.jpBold = 'NotoJP';
+    }
+    cfg.hasJp = true;
+  } catch {
+    // 登録失敗 (壊れた TTF/OTF) → Helvetica fallback のまま
+  }
+  return cfg;
+}
 
 function trim(v: string | null | number): string {
   if (v === null || v === undefined) return '';
@@ -34,13 +85,15 @@ export async function buildPdf(data: ExportData): Promise<ExportArtifact> {
     doc.on('error', (err) => reject(err));
   });
 
-  // ヘッダ
-  doc.fontSize(18).text('Security Checklist Report', { align: 'left' });
+  const fonts = registerFonts(doc);
+
+  // ヘッダ (タイトルは ASCII 維持)
+  doc.font(fonts.asciiBold).fontSize(18).text('Security Checklist Report', {
+    align: 'left',
+  });
   doc.moveDown(0.4);
-  doc
-    .fontSize(11)
-    .fillColor('#475569')
-    .text(`Title: ${trim(data.assessmentTitle)}`, { align: 'left' });
+  doc.font(fonts.jpRegular).fontSize(11).fillColor('#475569');
+  doc.text(`Title: ${trim(data.assessmentTitle)}`, { align: 'left' });
   doc.text(`Company: ${trim(data.companyDomain)}`);
   doc.text(`Generated: ${trim(data.generatedAt)}`);
   doc.text(`Items: ${data.rows.length}`);
@@ -62,11 +115,10 @@ export async function buildPdf(data: ExportData): Promise<ExportArtifact> {
     const r = data.rows[i];
     if (!r) continue;
     if (doc.y > 760) doc.addPage();
+    doc.font(fonts.jpBold);
+    doc.text(`${i + 1}. ${trim(r.controlTitle)}`, { continued: false });
     doc
-      .font('Helvetica-Bold')
-      .text(`${i + 1}. ${trim(r.controlTitle)}`, { continued: false });
-    doc
-      .font('Helvetica')
+      .font(fonts.jpRegular)
       .fillColor('#475569')
       .text(
         [
@@ -84,9 +136,7 @@ export async function buildPdf(data: ExportData): Promise<ExportArtifact> {
         (r.assigneeEmail ? `  Assignee: ${trim(r.assigneeEmail)}` : ''),
     );
     if (r.note) {
-      doc
-        .fillColor('#475569')
-        .text(`Note: ${trim(r.note)}`, { width: 499 });
+      doc.fillColor('#475569').text(`Note: ${trim(r.note)}`, { width: 499 });
     }
     if (r.evidenceUrl) {
       doc.fillColor('#0095C8').text(`Evidence: ${trim(r.evidenceUrl)}`);

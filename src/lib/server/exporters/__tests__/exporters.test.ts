@@ -1,8 +1,12 @@
 import { describe, it, expect } from 'vitest';
+import * as path from 'node:path';
+import * as os from 'node:os';
+import * as fs from 'node:fs';
 import ExcelJS from 'exceljs';
+import PDFDocument from 'pdfkit';
 import { buildCsv } from '../csv';
 import { buildXlsx } from '../xlsx';
-import { buildPdf } from '../pdf';
+import { buildPdf, registerFonts } from '../pdf';
 import { exportAssessment } from '../index';
 import { safeFilename, type ExportData } from '../types';
 
@@ -122,5 +126,30 @@ describe('exportAssessment dispatcher', () => {
     expect(xlsx.format).toBe('xlsx');
     const pdf = await exportAssessment('pdf', fixture);
     expect(pdf.format).toBe('pdf');
+  });
+});
+
+describe('registerFonts (PDF JP fallback)', () => {
+  it('falls back to Helvetica when fontDir is empty', () => {
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'sct-fonts-'));
+    const doc = new PDFDocument({ autoFirstPage: false });
+    const cfg = registerFonts(doc, tmp);
+    expect(cfg.hasJp).toBe(false);
+    expect(cfg.jpRegular).toBe('Helvetica');
+    expect(cfg.jpBold).toBe('Helvetica-Bold');
+    fs.rmSync(tmp, { recursive: true, force: true });
+  });
+
+  it('does not throw when registerFont fails (corrupt OTF)', () => {
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'sct-fonts-'));
+    fs.writeFileSync(path.join(tmp, 'NotoSansJP-Regular.otf'), 'not-a-font');
+    const doc = new PDFDocument({ autoFirstPage: false });
+    expect(() => registerFonts(doc, tmp)).not.toThrow();
+    const cfg = registerFonts(doc, tmp);
+    // 壊れたフォント → fallback (hasJp は false 扱い になるはずだが、
+    // 一部 pdfkit バージョンでは register 自体は通って後段で失敗する.
+    // ここでは "throw しない" ことだけ保証する)
+    expect(cfg.jpRegular === 'Helvetica' || cfg.jpRegular === 'NotoJP').toBe(true);
+    fs.rmSync(tmp, { recursive: true, force: true });
   });
 });

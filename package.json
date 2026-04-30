@@ -21,7 +21,8 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "test:integration": "vitest run --config vitest.integration.config.ts",
-    "test:flow": "vitest run --config vitest.flow.config.ts"
+    "test:flow": "vitest run --config vitest.flow.config.ts",
+    "setup:fonts": "node scripts/download-fonts.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",
