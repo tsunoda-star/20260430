@@ -1,5 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Plesk Node.js Toolkit (Phusion Passenger) で単一 server.js を起動するため
+  // standalone 出力を採用. AWS / Vercel / 他 PaaS でも問題なし。
+  output: 'standalone',
   reactStrictMode: true,
   poweredByHeader: false,
   experimental: {

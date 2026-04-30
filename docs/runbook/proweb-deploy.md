@@ -32,7 +32,7 @@ graph LR
 | 項目 | 確認 |
 |------|------|
 | Pro-Web Plesk 管理画面の URL とログイン情報 | ✓ |
-| 独自ドメイン (例: `sct.example.jp`) を Pro-Web に向け済み | ✓ |
+| 独自ドメイン (例: `checklist.secureonline.co.jp`) を Pro-Web に向け済み | ✓ |
 | GitHub リポジトリへの公開鍵登録 (deploy key 推奨) | ✓ |
 | メモ: Plesk 管理 URL / SSH 接続情報 | ✓ |
 
@@ -80,8 +80,8 @@ npm run prisma:seed
 ### 4.1 ドメインを Plesk に登録
 
 1. Plesk 管理画面 → **Websites & Domains** → **Add Domain**
-2. ドメイン名: `sct.example.jp`
-3. Document root: `/httpdocs/sct` (任意)
+2. ドメイン名: `checklist.secureonline.co.jp`
+3. Document root: `/httpdocs/checklist.secureonline.co.jp` (任意)
 4. **OK**
 
 ### 4.2 Node.js Toolkit を有効化
@@ -91,10 +91,10 @@ npm run prisma:seed
 2. 「Enable Node.js」をクリック
 3. 設定:
    - **Node.js version**: **20.x** (LTS) を選択
-   - **Document Root**: 自動 (httpdocs/sct)
+   - **Document Root**: 自動 (httpdocs/checklist.secureonline.co.jp)
    - **Application Mode**: `production`
-   - **Application URL**: `https://sct.example.jp`
-   - **Application Root**: `httpdocs/sct`
+   - **Application URL**: `https://checklist.secureonline.co.jp`
+   - **Application Root**: `httpdocs/checklist.secureonline.co.jp`
    - **Application Startup File**: 後で `server.js` (Next.js standalone) を指定
 4. 一旦 **Apply** で保存
 
@@ -176,7 +176,7 @@ Plesk → ドメインの **Node.js** 画面 → **Custom environment variables*
 | `SESSION_COOKIE_NAME` | `sct_session` | |
 | `NEXT_PUBLIC_APP_NAME` | `Security Checklist Tool` | |
 | `NEXT_PUBLIC_APP_ENV` | `prod` | |
-| `NEXT_PUBLIC_CC_AUTH_REDIRECT_URI` | `https://sct.example.jp/auth/callback` | Cognito 利用時のみ |
+| `NEXT_PUBLIC_CC_AUTH_REDIRECT_URI` | `https://checklist.secureonline.co.jp/auth/callback` | Cognito 利用時のみ |
 | `COGNITO_USER_POOL_ID` / `COGNITO_CLIENT_ID` / `COGNITO_REGION` | (Cognito を使う場合) | |
 | `DEV_AUTH_BYPASS` | **設定しないこと** | production では無効 (security) |
 
@@ -203,7 +203,7 @@ Plesk Node.js 画面 → **Application Startup File** を:
 
 ### 7.3 動作確認
 
-ブラウザで `https://sct.example.jp/api/v1/health` を開く:
+ブラウザで `https://checklist.secureonline.co.jp/api/v1/health` を開く:
 
 ```json
 {
@@ -218,7 +218,7 @@ Plesk Node.js 画面 → **Application Startup File** を:
 
 `database` が **ok** なら Neon 接続成功。
 
-トップページ `https://sct.example.jp/` で URL 入力フォームが表示される。
+トップページ `https://checklist.secureonline.co.jp/` で URL 入力フォームが表示される。
 
 ---
 
@@ -262,7 +262,7 @@ jobs:
           username: ${{ secrets.PROWEB_USER }}
           key: ${{ secrets.PROWEB_SSH_KEY }}
           script: |
-            cd ~/httpdocs/sct
+            cd ~/httpdocs/checklist.secureonline.co.jp
             git pull
             npm ci
             npm run setup:fonts

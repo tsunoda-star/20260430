@@ -360,9 +360,13 @@ sdk:
 # Phase 5 (testing), Phase 5.5 (mock-detection), Phase 7 (deploy-dev/prod) の前提。
 domain:
   project_slug: "security-checklist-tool"
-  dev_subdomain: "security-checklist-tool-dev.aidreams-factory.com"
-  prod_subdomain: "security-checklist-tool.aidreams-factory.com"
-  apex_domain: "aidreams-factory.com"
+  # Pro-Web (AXIS) 経路で公開する MVP ドメイン
+  dev_subdomain: "checklist.secureonline.co.jp"
+  prod_subdomain: "checklist.secureonline.co.jp"
+  apex_domain: "secureonline.co.jp"
+  # AWS 経路 (将来エンタープライズ移行時の予備)
+  aws_dev_subdomain: "security-checklist-tool-dev.aidreams-factory.com"
+  aws_prod_subdomain: "security-checklist-tool.aidreams-factory.com"
 
 # ========================================
 # CC-Auth設定 (共通認証課金基盤)

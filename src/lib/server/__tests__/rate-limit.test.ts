@@ -18,7 +18,9 @@ describe('TokenBucketLimiter', () => {
   });
 
   it('decrements tokens on consume', () => {
-    const l = new TokenBucketLimiter({ capacity: 5 });
+    // Date.now ベースの自動 refill による微小な drift を吸収するため fakeNow を使う
+    const clock = fakeNow();
+    const l = new TokenBucketLimiter({ capacity: 5, now: clock.now });
     expect(l.consume('k').allowed).toBe(true);
     expect(l.consume('k').allowed).toBe(true);
     expect(l.peek('k').remaining).toBe(3);
