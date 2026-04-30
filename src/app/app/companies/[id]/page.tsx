@@ -77,8 +77,8 @@ export default async function CompanyDetailPage({
   if (!company) notFound();
 
   const inferred = (company.inferredData ?? {}) as InferredData;
-  const confidence = company.inferenceConfidence ?? 0;
-  const confidencePct = Math.round(confidence * 100);
+  // inferenceConfidence は 0-100 の整数 (SmallInt) として保存される
+  const confidencePct = Math.max(0, Math.min(100, company.inferenceConfidence ?? 0));
 
   return (
     <main className="mx-auto max-w-3xl px-4 py-12 md:py-16">
@@ -118,7 +118,7 @@ export default async function CompanyDetailPage({
             </div>
             <p className="text-sm font-medium">{confidencePct}%</p>
           </div>
-          {confidence < 0.6 ? (
+          {confidencePct < 60 ? (
             <p className="mt-2 text-xs text-amber-600">
               信頼度が低めです。手動レビューを推奨します。
             </p>
