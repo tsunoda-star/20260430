@@ -5,6 +5,7 @@ import { AxeReporter } from '@/components/dev/axe-reporter';
 import { RoleProvider } from '@/lib/auth/role-context';
 import { WhyDisabledBanner } from '@/components/why-disabled-banner';
 import { ViewerRouteGate } from '@/components/viewer-route-gate';
+import { MasterUpdateBanner } from '@/components/master-update-banner';
 import './globals.css';
 
 // 見出し: Manrope (design-system.yml typography.heading)
@@ -75,6 +76,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <AxeReporter />
         <RoleProvider>
           <WhyDisabledBanner />
+          <MasterUpdateBanner />
           <ViewerRouteGate />
           {children}
         </RoleProvider>
