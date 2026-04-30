@@ -3,7 +3,9 @@
 // Phase 4 / Wave 1: 全テーブルを定義 (Wave 2 でクローラー/LLM 拡張テーブルを追加)
 
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  // Neon Serverless Driver 経由で HTTPS (443) で Postgres を喋るために必要
+  previewFeatures = ["driverAdapters"]
 }
 
 datasource db {
