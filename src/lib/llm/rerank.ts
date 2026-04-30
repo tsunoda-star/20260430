@@ -113,11 +113,19 @@ function identity(candidates: RerankCandidate[]): RerankResultEntry[] {
 }
 
 function selectProvider(): LlmEstimationProvider | null {
-  const choice = (
+  const explicit = (
     process.env.LLM_PRIMARY_PROVIDER ??
     process.env.LLM_PROVIDER ??
-    'openai'
+    ''
   ).toLowerCase();
+  const choice =
+    explicit === 'anthropic' || explicit === 'openai'
+      ? explicit
+      : process.env.ANTHROPIC_API_KEY
+        ? 'anthropic'
+        : process.env.OPENAI_API_KEY
+          ? 'openai'
+          : '';
   if (choice === 'openai') {
     const apiKey = process.env.OPENAI_API_KEY;
     if (!apiKey) return null;

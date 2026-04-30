@@ -44,22 +44,28 @@ async function checkDb(): Promise<HealthCheck> {
 }
 
 function checkLlm(): HealthCheck {
-  // 互換: 旧 env LLM_PROVIDER も拾う (typo の救済)
-  const provider = (
+  const explicit = (
     process.env.LLM_PRIMARY_PROVIDER ??
     process.env.LLM_PROVIDER ??
-    'openai'
+    ''
   ).toLowerCase();
+  const hasAnthropic = !!process.env.ANTHROPIC_API_KEY;
+  const hasOpenai = !!process.env.OPENAI_API_KEY;
+  const provider =
+    explicit === 'anthropic' || explicit === 'openai' || explicit === 'fallback'
+      ? explicit
+      : hasAnthropic
+        ? 'anthropic'
+        : hasOpenai
+          ? 'openai'
+          : '';
+
   if (provider === 'fallback') {
     return { name: 'llm', status: 'degraded', detail: 'fallback only' };
   }
   if (provider === 'anthropic') {
-    if (!process.env.ANTHROPIC_API_KEY) {
-      return {
-        name: 'llm',
-        status: 'degraded',
-        detail: 'ANTHROPIC_API_KEY not set',
-      };
+    if (!hasAnthropic) {
+      return { name: 'llm', status: 'degraded', detail: 'ANTHROPIC_API_KEY not set' };
     }
     return {
       name: 'llm',
@@ -68,12 +74,16 @@ function checkLlm(): HealthCheck {
     };
   }
   if (provider === 'openai') {
-    if (!process.env.OPENAI_API_KEY) {
+    if (!hasOpenai) {
       return { name: 'llm', status: 'degraded', detail: 'OPENAI_API_KEY not set' };
     }
-    return { name: 'llm', status: 'ok', detail: `provider=openai` };
+    return { name: 'llm', status: 'ok', detail: 'provider=openai' };
   }
-  return { name: 'llm', status: 'degraded', detail: `unknown provider: ${provider}` };
+  return {
+    name: 'llm',
+    status: 'degraded',
+    detail: 'no LLM key set (ANTHROPIC_API_KEY or OPENAI_API_KEY)',
+  };
 }
 
 function checkSession(): HealthCheck {

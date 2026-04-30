@@ -54,28 +54,40 @@ function selectProvider(opts: AiChatStreamOptions): {
   apiKey?: string;
   model?: string;
 } {
-  const choice = (
+  // 明示的に provider が指定されたらそれを優先。なければ「鍵が設定されている方」を
+  // 使う (Plesk の env 設定漏れでも動くように — 一方だけ設定されていれば止まらない)。
+  const explicit = (
     process.env.LLM_PRIMARY_PROVIDER ??
     process.env.LLM_PROVIDER ??
-    'openai'
+    ''
   ).toLowerCase();
-  if (choice === 'anthropic') {
-    const apiKey = opts.apiKey ?? process.env.ANTHROPIC_API_KEY;
-    if (!apiKey) return { provider: null };
+  const anthropicKey = opts.apiKey ?? process.env.ANTHROPIC_API_KEY;
+  const openaiKey = opts.apiKey ?? process.env.OPENAI_API_KEY;
+
+  const choice =
+    explicit === 'anthropic' || explicit === 'openai'
+      ? explicit
+      : anthropicKey
+        ? 'anthropic'
+        : openaiKey
+          ? 'openai'
+          : '';
+
+  if (choice === 'anthropic' && anthropicKey) {
     return {
       provider: 'anthropic',
-      apiKey,
+      apiKey: anthropicKey,
       model: opts.model ?? process.env.ANTHROPIC_MODEL,
     };
   }
-  // default: openai
-  const apiKey = opts.apiKey ?? process.env.OPENAI_API_KEY;
-  if (!apiKey) return { provider: null };
-  return {
-    provider: 'openai',
-    apiKey,
-    model: opts.model ?? process.env.OPENAI_MODEL,
-  };
+  if (choice === 'openai' && openaiKey) {
+    return {
+      provider: 'openai',
+      apiKey: openaiKey,
+      model: opts.model ?? process.env.OPENAI_MODEL,
+    };
+  }
+  return { provider: null };
 }
 
 function selectApiKey(opts: AiChatStreamOptions): string | undefined {

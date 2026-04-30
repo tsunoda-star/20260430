@@ -275,7 +275,13 @@ export function AssessmentItemDrawer({ item, onClose, onUpdate }: Props): JSX.El
               <div className="mt-4 space-y-2">
                 <p className="text-xs font-medium text-muted-foreground">Q. {answer.question}</p>
                 <div className="rounded-md bg-background p-3 text-sm leading-relaxed">
-                  {answer.answer || (answer.loading ? '考え中...' : '(空)')}
+                  {answer.answer ? (
+                    <LinkifiedText text={answer.answer} />
+                  ) : answer.loading ? (
+                    '考え中...'
+                  ) : (
+                    '(空)'
+                  )}
                   {answer.loading ? (
                     <span className="ml-1 inline-block h-3 w-1.5 animate-pulse bg-foreground/60" />
                   ) : null}
@@ -293,5 +299,44 @@ export function AssessmentItemDrawer({ item, onClose, onUpdate }: Props): JSX.El
         ) : null}
       </aside>
     </div>
+  );
+}
+
+/**
+ * URL を <a> タグに自動変換するシンプルなレンダラ。
+ * - http(s):// のみ対象、改行はそのまま `\n` で保持
+ * - rel="noopener noreferrer" で外部参照を保護
+ */
+function LinkifiedText({ text }: { text: string }): JSX.Element {
+  const parts: Array<string | { url: string }> = [];
+  const re = /(https?:\/\/[^\s<>"]+)/g;
+  let lastIndex = 0;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(text)) !== null) {
+    const url = m[1] ?? m[0];
+    if (m.index > lastIndex) parts.push(text.slice(lastIndex, m.index));
+    parts.push({ url });
+    lastIndex = m.index + url.length;
+  }
+  if (lastIndex < text.length) parts.push(text.slice(lastIndex));
+
+  return (
+    <span className="whitespace-pre-wrap">
+      {parts.map((p, i) =>
+        typeof p === 'string' ? (
+          <span key={i}>{p}</span>
+        ) : (
+          <a
+            key={i}
+            href={p.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="break-all text-brand-ink underline underline-offset-2 hover:text-brand"
+          >
+            {p.url}
+          </a>
+        ),
+      )}
+    </span>
   );
 }

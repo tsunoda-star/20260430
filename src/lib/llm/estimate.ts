@@ -50,12 +50,21 @@ export interface EstimateOptions {
 }
 
 function selectProvider(): LlmEstimationProvider | null {
-  // 互換: LLM_PROVIDER (typo) も読む
-  const choice = (
+  // 明示指定 (LLM_PRIMARY_PROVIDER / LLM_PROVIDER) があれば優先。
+  // なければ鍵が設定されている方を自動選択する (env 設定漏れに強くする)。
+  const explicit = (
     process.env.LLM_PRIMARY_PROVIDER ??
     process.env.LLM_PROVIDER ??
-    'openai'
+    ''
   ).toLowerCase();
+  const choice =
+    explicit === 'anthropic' || explicit === 'openai' || explicit === 'fallback'
+      ? explicit
+      : process.env.ANTHROPIC_API_KEY
+        ? 'anthropic'
+        : process.env.OPENAI_API_KEY
+          ? 'openai'
+          : '';
   if (choice === 'openai') {
     const apiKey = process.env.OPENAI_API_KEY;
     if (!apiKey) return null;
