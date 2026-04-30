@@ -5,6 +5,7 @@ import {
 import { buildEstimationPrompt, PROMPT_VERSION } from './estimation-prompt';
 import { ruleBasedEstimate } from './rule-based-fallback';
 import { createOpenAiProvider } from './providers/openai';
+import { createAnthropicProvider } from './providers/anthropic';
 import {
   EstimationOutputSchema,
   type EstimationInput,
@@ -54,6 +55,14 @@ function selectProvider(): LlmEstimationProvider | null {
     const apiKey = process.env.OPENAI_API_KEY;
     if (!apiKey) return null;
     return createOpenAiProvider({ apiKey, model: process.env.OPENAI_MODEL });
+  }
+  if (choice === 'anthropic') {
+    const apiKey = process.env.ANTHROPIC_API_KEY;
+    if (!apiKey) return null;
+    return createAnthropicProvider({
+      apiKey,
+      model: process.env.ANTHROPIC_MODEL,
+    });
   }
   // 未対応プロバイダ → fallback (ルールベース)
   return null;

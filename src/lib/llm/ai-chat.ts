@@ -1,5 +1,6 @@
 import { sanitizeAiChatMarkdown } from './markdown-sanitize';
 import { buildAiChatPrompt, AI_CHAT_PROMPT_VERSION, type AiChatInput } from './ai-chat-prompt';
+import { fetchAnthropicStream, parseAnthropicStream } from './providers/anthropic';
 
 /**
  * spec.md §4.3 ai_chat ストリーミング実装.
@@ -46,6 +47,33 @@ interface OpenAiStreamLine {
   choices?: Array<{ delta?: { content?: string | null } }>;
 }
 
+type Provider = 'openai' | 'anthropic';
+
+function selectProvider(opts: AiChatStreamOptions): {
+  provider: Provider | null;
+  apiKey?: string;
+  model?: string;
+} {
+  const choice = (process.env.LLM_PRIMARY_PROVIDER ?? 'openai').toLowerCase();
+  if (choice === 'anthropic') {
+    const apiKey = opts.apiKey ?? process.env.ANTHROPIC_API_KEY;
+    if (!apiKey) return { provider: null };
+    return {
+      provider: 'anthropic',
+      apiKey,
+      model: opts.model ?? process.env.ANTHROPIC_MODEL,
+    };
+  }
+  // default: openai
+  const apiKey = opts.apiKey ?? process.env.OPENAI_API_KEY;
+  if (!apiKey) return { provider: null };
+  return {
+    provider: 'openai',
+    apiKey,
+    model: opts.model ?? process.env.OPENAI_MODEL,
+  };
+}
+
 function selectApiKey(opts: AiChatStreamOptions): string | undefined {
   return opts.apiKey ?? process.env.OPENAI_API_KEY ?? undefined;
 }
@@ -89,11 +117,11 @@ export async function streamAiChat(
   input: AiChatInput,
   opts: AiChatStreamOptions = {},
 ): Promise<AiChatStreamResult> {
-  const apiKey = selectApiKey(opts);
+  const sel = selectProvider(opts);
   const built = buildAiChatPrompt(input);
 
   // degraded fallback: API key 不在 → 単発メッセージを yield
-  if (!apiKey) {
+  if (sel.provider === null) {
     let full = '';
     return makeFallbackResult(DEGRADED_MESSAGE, (s) => {
       full = s;
@@ -101,8 +129,6 @@ export async function streamAiChat(
   }
 
   const fetcher = opts.fetcher ?? fetch;
-  const baseUrl = (opts.baseUrl ?? DEFAULT_BASE_URL).replace(/\/+$/, '');
-  const model = opts.model ?? process.env.OPENAI_MODEL ?? DEFAULT_MODEL;
   const controller = new AbortController();
   if (opts.signal) {
     if (opts.signal.aborted) controller.abort();
@@ -112,24 +138,38 @@ export async function streamAiChat(
 
   let res: Response;
   try {
-    res = await fetcher(`${baseUrl}/chat/completions`, {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-        authorization: `Bearer ${apiKey}`,
-        'OpenAI-Beta': 'log-retention=0',
-      },
-      signal: controller.signal,
-      body: JSON.stringify({
-        model,
-        messages: [
-          { role: 'system', content: built.system },
-          { role: 'user', content: built.user },
-        ],
-        stream: true,
-        temperature: 0.2,
-      }),
-    });
+    if (sel.provider === 'anthropic') {
+      res = await fetchAnthropicStream({
+        apiKey: sel.apiKey!,
+        model: sel.model,
+        baseUrl: opts.baseUrl,
+        system: built.system,
+        user: built.user,
+        signal: controller.signal,
+        fetcher,
+      });
+    } else {
+      const baseUrl = (opts.baseUrl ?? DEFAULT_BASE_URL).replace(/\/+$/, '');
+      const model = sel.model ?? DEFAULT_MODEL;
+      res = await fetcher(`${baseUrl}/chat/completions`, {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          authorization: `Bearer ${sel.apiKey!}`,
+          'OpenAI-Beta': 'log-retention=0',
+        },
+        signal: controller.signal,
+        body: JSON.stringify({
+          model,
+          messages: [
+            { role: 'system', content: built.system },
+            { role: 'user', content: built.user },
+          ],
+          stream: true,
+          temperature: 0.2,
+        }),
+      });
+    }
   } catch {
     clearTimeout(timer);
     let full = '';
@@ -149,10 +189,12 @@ export async function streamAiChat(
   let accumulated = '';
   let degraded = false;
   let sanitizationNotes: string[] = [];
+  const streamParser =
+    sel.provider === 'anthropic' ? parseAnthropicStream : parseOpenAiStream;
 
   async function* gen(): AsyncGenerator<string, void, unknown> {
     try {
-      for await (const chunk of parseOpenAiStream(reader)) {
+      for await (const chunk of streamParser(reader)) {
         accumulated += chunk;
         yield chunk;
       }
